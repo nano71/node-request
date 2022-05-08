@@ -534,28 +534,28 @@ function randomSort(arr, newArr) {
     randomSort(arr, newArr);
 }
 
-function insert({
-                    keyword,
-                    title,
-                    time,
-                    platform,
-                    url,
-                    shop,
-                    originCountry,
-                    originProvince,
-                    originAddress,
-                    variety,
-                    specifications,
-                    sales
-                }) {
+async function insert({
+                          keyword,
+                          title,
+                          time,
+                          platform,
+                          url,
+                          shop,
+                          originCountry,
+                          originProvince,
+                          originAddress,
+                          variety,
+                          specifications,
+                          sales
+                      }) {
     return new Promise((resolve, reject) => {
         connection.query(
             "select * from tmall where url = ?",
             [url],
-            (err, result) => {
+            async (err, result) => {
                 if (result.length === 0) {
                     console.log("开始添加");
-                    connection.query(
+                    await connection.query(
                         `INSERT INTO tmall (keyword,
                                             title,
                                             time,
@@ -584,14 +584,16 @@ function insert({
                             if (err) {
                                 throw err;
                             }
+                            resolve();
                         }
                     );
                 } else {
                     console.log("已存在");
+                    resolve();
                 }
             }
         );
-        resolve();
+
     })
 }
 
