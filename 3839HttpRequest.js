@@ -21,7 +21,6 @@ let index = 0;
 
 function insert({name, title, gameVersion, starScore, gameSize, icon, face, imgs, commentCount, desc, updateTime}) {
     console.log({name, title, gameVersion, starScore, gameSize, icon, face, imgs, commentCount, desc, updateTime});
-
     return new Promise((resolve, reject) => {
         connection.query(
             "select * from gameinfo where gameName = ?",

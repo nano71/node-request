@@ -8,7 +8,7 @@ let connection = mysql.createPool({
         port: "3306",
         user: "root",
         password: "123456",
-        database: "tmall",
+        database: "http_request",
         connectionLimit: "20" //设置连接池的数量
     }), browser,
     current = 0,
@@ -19,7 +19,7 @@ let connection = mysql.createPool({
     browserWSEndpoint,
     folderName = "";
 
-async function request(url, first) {
+async function request(url, first, test) {
     if (first) {
         console.log("开始");
         await puppeteer.launch({
@@ -145,7 +145,7 @@ async function request(url, first) {
         console.log("randomList", randomList);
         console.log("urls", urls);
         console.log("页面滚动中");
-        await pageScroll(page);
+        !test && await pageScroll(page);
         try {
             await page.$eval(".baxia-dialog", element => {
                 return element.setAttribute("style", "display: none;opacity: 0;")
@@ -153,11 +153,16 @@ async function request(url, first) {
         } catch (e) {
             // console.log(e);
         }
-
+        let testUrl = '//detail.tmall.com/item.htm?id=667162749625&skuId=4808601756927&areaId=450400&user_id=4270388526&cat_id=2&is_b=1&rn=accbad07b7a95e83e82018ac340f14f5'
         await timeout("random");
         for (let item of randomList) {
+            // let key = dataList.length - 1
             console.log(current, item);
-            await requestDetail(urls[item - 1], true)
+            if (test) {
+                await requestDetail(testUrl, true)
+            } else {
+                await requestDetail(urls[item - 1], true)
+            }
             try {
                 console.log("face图保存中");
                 let src = await page.$eval(
@@ -165,15 +170,17 @@ async function request(url, first) {
                         return element.getAttribute("src")
                     });
                 src.replace("https:", "").replace("http:", "");
-                dataList[dataList.length - 1].face = "https:" + src
+                dataList[current].face = "https:" + src
                 console.log("face图url提取完成");
             } catch (e) {
                 console.log(e);
             }
-            console.log(dataList[current - 1]);
-            console.log(dataList[current - 1].specifications);
-            console.log(dataList[current - 1].specifications[0]);
-            console.log(current - 1, "完成");
+            console.log(dataList[current]);
+            console.log(JSON.stringify(dataList[current].specifications));
+            console.log(dataList[current].specifications[0]);
+            await insert(dataList[current])
+            console.log(current, "完成");
+            current++
             await timeout("random");
         }
     } else {
@@ -189,7 +196,7 @@ async function timeout(type, log) {
         if (type !== "random") {
             randomTime = type
         }
-        if (log) {
+        if (log === undefined) {
             console.log(randomTime, "毫秒延迟");
         }
         setTimeout(resolve, randomTime)
@@ -204,6 +211,8 @@ async function requestDetail(url, first) {
         let randomTime = parseInt((Math.random() * 10000).toFixed(0));
 
         let date = new Date();
+        newUrl.replaceAll("https:", "").replaceAll("http:", "");
+
         let data = {
             keyword: query,
             title: "",
@@ -216,11 +225,8 @@ async function requestDetail(url, first) {
             originAddress: "",
             variety: "",
             specifications: [],
-            price: "",
-            weight: "",
             sales: "",
         };
-        newUrl.replace("https:", "").replace("http:", "");
         const page = await browser.newPage();
         await page.setViewport({
             width: 1600,
@@ -235,13 +241,14 @@ async function requestDetail(url, first) {
         })
         let timer, timer2
 
-        try {
-            timer2 = setTimeout(async () => {
-                console.log("页面刷新");
+        timer2 = setTimeout(async () => {
+            console.log("页面刷新");
+            try {
                 await page.reload({waitUntil: ["networkidle0", "domcontentloaded"]});
-            }, 25000)
-        } catch (e) {
-        }
+            } catch (e) {
+            }
+        }, 25000)
+
 
         await page.goto("https:" + newUrl, {waitUntil: "domcontentloaded"});
 
@@ -255,7 +262,7 @@ async function requestDetail(url, first) {
                     window.scrollBy(0, Math.random() * 100);
                     totalHeight += Math.random() * 100;
                     if (totalHeight >= scrollHeight) {
-                        window.scrollTo(0, 50);
+                        window.scrollTo(0, 150);
                         clearInterval(timer);
                     }
                 }, 100);
@@ -272,18 +279,35 @@ async function requestDetail(url, first) {
         // }
         let dialog = await page.$("iframe#baxia-dialog-content")
         if (dialog) {
+            dialog = await dialog.contentFrame()
+            let block = await dialog.$("#nc_1_n1z")
             console.log("出现验证框");
-            await page.evaluate(async () => {
-                try {
-                    Object.defineProperty(navigator, 'webdriver', {get: () => false})
-                } catch (e) {
-                }
-            })
-            let box = await dialog.boundingBox();
-            await page.mouse.move(box.x + 60, box.y + 200);
+
+            let box = await block.boundingBox();
+            console.log(box);
+            // await dialog.hover("#nc_1_n1z")
+            await page.mouse.move(box.x + 10, box.y + 10);
             await page.mouse.down();
-            await page.mouse.move(box.x+ 360, box.y + 200, {steps: 4});
+            await page.evaluate(async () => {
+                Object.defineProperty(navigator, 'webdriver', {get: () => false})
+            })
+            await dialog.evaluate(async () => {
+                Object.defineProperty(navigator, 'webdriver', {get: () => false})
+            })
+
+            // await timeout(10000)
+            await page.mouse.move(box.x + 300, box.y + 10, {steps: 4});
+            // await timeout(10000)
+            await timeout("random");
             await page.mouse.up()
+            await timeout(3000)
+            console.log("再次滑动");
+            await page.mouse.move(box.x + 10, box.y + 10);
+            await page.mouse.down();
+            await page.mouse.move(box.x + 300, box.y + 10, {steps: 4});
+            await timeout("random");
+            await page.mouse.up()
+
         }
         let error = await page.$(".errorDetail");
         let offSales = await page.$("strong.sold-out-tit")
@@ -293,10 +317,14 @@ async function requestDetail(url, first) {
             clearTimeout(timer2)
             dataList.push(data);
             setTimeout(async () => {
-                current++
                 console.log("页面关闭");
-                await page.close();
-                return resolve()
+                try {
+                    await page.close();
+                } catch (e) {
+
+                }
+
+                resolve()
             }, randomTime);
         } else {
 
@@ -306,7 +334,6 @@ async function requestDetail(url, first) {
             let title
             let label
             let label2
-            let detailUl
             try {
                 await page.$eval("video.lib-video", element => {
                     element.pause()
@@ -327,40 +354,24 @@ async function requestDetail(url, first) {
                 }
 
                 data.sales = await page.$eval(".tm-ind-sellCount .tm-count", element => element.innerText);
-
-                detailUl = await page.$$eval(
-                    ".tm-sale-prop",
-                    elements => {
-                        let list = []
-                        for (let i = 0; i < elements.length; i++) {
-                            let childList = []
-                            let row = elements[i].querySelectorAll("li:not(.tb-out-of-stock) span")
-                            row.forEach(async (element, key) => {
-                                childList.push(element.innerText)
-                            })
-                            list.push(childList)
-                        }
-                        return list;
-                    }
-                )
             } catch (e) {
                 console.log(e);
                 clearInterval(timer)
                 clearTimeout(timer2)
-                await page.close();
+
                 if (first) {
                     console.log("数据有误,即将重试");
-                    return await requestDetail(url, false);
+                    await page.close();
+                    await requestDetail(url, false);
+                    // await timeout(10000000)
                 } else {
                     console.log("数据有误,跳过当前");
                     dataList.push(data);
-                    console.log(data);
-                    current++
+                    await page.close();
                     resolve()
                     return
                 }
             }
-            console.log("detailUl", detailUl);
             clearInterval(timer)
             clearTimeout(timer2)
             console.log("处理detail");
@@ -368,11 +379,11 @@ async function requestDetail(url, first) {
             async function initSelectArea() {
                 return new Promise(async resolve1 => {
                     try {
-                        page.$$eval("dl.tm-sale-prop ul li.tb-selected", elements => {
-                            elements.forEach(element => {
-                                element.querySelector("a").click()
-                            })
+                        await page.$eval("li.tb-selected", element => {
+                            element.querySelector("a").click()
+                            document.querySelector("li.tb-selected a").click()
                         })
+                        await timeout(1000)
                         resolve1()
                     } catch (e) {
                         console.log(e);
@@ -383,12 +394,15 @@ async function requestDetail(url, first) {
 
             let selectArea = await page.$("dl.tm-sale-prop")
             if (selectArea) {
-                for (let i = 0; i < detailUl[0].length; i++) {
-                    let labelText
-                    let prices = []
+                await initSelectArea()
+                console.log("选择区已初始化");
+                let one = await page.$$("dl.tm-sale-prop:nth-child(1) li:not(.tb-out-of-stock)")
+                console.log("O可选择数量", one.length);
+                for (let i = 0; i < one.length; i++) {
                     await initSelectArea()
                     console.log("选择区已初始化");
-                    await timeout(1000)
+                    let labelText
+                    let prices = []
                     try {
                         labelText = await page.$eval(
                             `dl.tm-sale-prop:nth-child(1)`,
@@ -397,11 +411,13 @@ async function requestDetail(url, first) {
                                 spans[i].parentElement.click()
                                 return spans[i].innerText
                             }, i)
-                        await timeout(500)
                     } catch (e) {
                         console.log(e);
                     }
-                    for (let j = 0; j < detailUl[1].length; j++) {
+                    await timeout(1000, true)
+                    let two = await page.$$("dl.tm-sale-prop:nth-child(2) li:not(.tb-out-of-stock)")
+                    console.log("T可选择数量", two.length);
+                    for (let j = 0; j < two.length; j++) {
                         try {
                             console.log("第", i + 1, "行,第", j + 1, "个");
                             //第二行的可选择数量
@@ -412,7 +428,7 @@ async function requestDetail(url, first) {
                                     spans[j].parentElement.click()
                                     return spans[j].innerText
                                 }, j)
-                            await timeout(500)
+                            await timeout(500, true)
                             let price = await page.$$eval("span.tm-price", elements => {
                                 return elements[elements.length - 1].innerText
                             })
@@ -422,7 +438,6 @@ async function requestDetail(url, first) {
                                 price
                             })
 
-                            await timeout(500)
                         } catch (e) {
                             console.log(e);
                         }
@@ -432,6 +447,35 @@ async function requestDetail(url, first) {
                         label: labelText,
                         prices
                     })
+                    await timeout(500, true)
+
+                }
+            }
+            let details = await page.$$eval("#J_AttrUL li", elements => {
+                let list = []
+                elements.forEach((value, index) => {
+                    let text = value.innerText
+                    list.push(text.split(":"))
+                })
+                return list
+            })
+            console.log(details);
+            for (let detail1 of details) {
+                let text = detail1[1]
+                switch (detail1[0]) {
+                    case  "产地":
+                        data.originCountry = text
+                        break
+                    case "省份":
+                        data.originProvince = text
+                        break
+                    case "城市":
+                        data.originAddress = text
+                        break
+                    case "特产品类":
+                    case "水果种类":
+                        data.variety = text
+                        break
                 }
             }
             data.title = title;
@@ -448,7 +492,6 @@ async function requestDetail(url, first) {
                 console.log("截图失败", e);
             }
             dataList.push(data);
-            current++;
             await timeout("random");
             try {
                 await page.close();
@@ -491,12 +534,66 @@ function randomSort(arr, newArr) {
     randomSort(arr, newArr);
 }
 
-function getOffset(el) {
-    el = el.getBoundingClientRect();
-    return {
-        left: el.left + window.scrollX,
-        top: el.top + window.scrollY
-    }
+function insert({
+                    keyword,
+                    title,
+                    time,
+                    platform,
+                    url,
+                    shop,
+                    originCountry,
+                    originProvince,
+                    originAddress,
+                    variety,
+                    specifications,
+                    sales
+                }) {
+    return new Promise((resolve, reject) => {
+        connection.query(
+            "select * from tmall where url = ?",
+            [url],
+            (err, result) => {
+                if (result.length === 0) {
+                    console.log("开始添加");
+                    connection.query(
+                        `INSERT INTO tmall (keyword,
+                                            title,
+                                            time,
+                                            platform,
+                                            url,
+                                            shop,
+                                            originCountry,
+                                            originProvince,
+                                            originAddress,
+                                            variety,
+                                            specifications,
+                                            sales)
+                         VALUES ('${keyword}',
+                                 '${title}',
+                                 '${time}',
+                                 '${platform}',
+                                 '${url}',
+                                 '${shop}',
+                                 '${originCountry}',
+                                 '${originProvince}',
+                                 '${originAddress}',
+                                 '${variety}',
+                                 '${JSON.stringify(specifications)}',
+                                 '${sales}');`,
+                        (err, result) => {
+                            if (err) {
+                                throw err;
+                            }
+                        }
+                    );
+                } else {
+                    console.log("已存在");
+                }
+            }
+        );
+        resolve();
+    })
 }
 
-request(url, true).then(r => console.log("结束"));
+
+request(url, true, false).then(r => console.log("结束"));
