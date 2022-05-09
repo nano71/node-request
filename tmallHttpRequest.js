@@ -12,13 +12,86 @@ let connection = mysql.createPool({
     }), browser,
     current = 0,
     query = "柚子",
-    baseUrl = "https://list.tmall.com/search_product.htm",
+    // baseUrl = "https://list.tmall.com/search_product.htm",
+    baseUrl = "https://s.taobao.com/search",
     url = baseUrl + "?q=" + query,
     dataList = [],
     urls = [],
     browserWSEndpoint,
     length = 0,
+    platform,
     folderName = "";
+
+let selector = {
+    "taobao": {
+        urls() {
+            return `div.ctx-box.J_MouseEneterLeave.J_IconMoreNew > .title > a`
+        },
+        face: {
+            a(index) {
+                return `#mainsrp-itemlist .items .item:nth-child(${index}) .title > a`
+            },
+            title(index) {
+                return `#mainsrp-itemlist .items .item:nth-child(${index}) .title > a`
+            },
+            img(index) {
+                return `#mainsrp-itemlist .items .item:nth-child(${index}) img.J_ItemPic.img`
+            }
+        },
+        detail: {
+            area: ".tb-item-info",
+            title: "#J_Title > h3",
+            shop: "a.shop-name-link",
+            shop2: "#J_ShopInfo > div > div.tb-shop-info-hd > div.tb-shop-name > dl > dd > strong > a",
+            label: "#J_isku dl.J_Prop.tb-prop:nth-child(1) > dt",
+            label2: "#J_isku dl.J_Prop.tb-prop:nth-child(2) > dt",
+            price: ".tb-rmb-num",
+            sales: "#J_SellCounter",
+            selectArea: "dl.J_Prop.tb-prop:nth-child(1)",
+            selectArea2: "dl.J_Prop.tb-prop:nth-child(2)",
+            selected: "li.tb-selected",
+            item: "li:not(.tb-out-of-stock)",
+            details: ".attributes-list li"
+        },
+        nextUrl: ".item.next"
+    },
+    "tmall": {
+        urls() {
+            return `#J_ItemList > div > div > p.productTitle > a`
+        },
+        face: {
+            a(index) {
+                return `#J_ItemList div.product:nth-child(${index}) p.productTitle a`
+            },
+            title(index) {
+                return `#J_ItemList div.product:nth-child(${index}) p.productTitle a`
+            },
+            img(index) {
+                return `#J_ItemList > div:nth-child(${index}) > div > div.productImg-wrap > a > img`
+            }
+        },
+        detail: {
+            area: "#J_DetailMeta",
+            title: "#J_DetailMeta > div.tm-clear > div.tb-property > div > div.tb-detail-hd > h1",
+            shop: "#shopExtra > div.slogo > a > strong",
+            shop2: "#side-shop-info > div > h3 > div > a",
+            label: "#J_DetailMeta .tm-sale-prop > dt.tb-metatit",
+            label2: "#J_DetailMeta .tm-sale-prop:nth-child(2) > dt.tb-metatit",
+            price: "span.tm-price",
+            sales: "span.tm-count",
+            selectArea: "dl.tm-sale-prop:nth-child(1)",
+            selectArea2: "dl.tm-sale-prop:nth-child(2)",
+            selected: "li.tb-selected",
+            item: "li:not(.tb-out-of-stock)",
+            details: "#J_AttrUL li"
+        },
+        nextUrl: "a.ui-page-next"
+    },
+    jd: {}
+}
+let currentSelector
+
+selectPlatform(baseUrl)
 
 async function request(url, first, test) {
     if (first) {
@@ -54,44 +127,21 @@ async function request(url, first, test) {
         deviceScaleFactor: 1,
     });
     await page.goto(url);
+    let error = await page.$(".warnning-text")
+    if (error) {
+        await page.evaluate(async () => {
+            Object.defineProperty(navigator, 'webdriver', {get: () => false})
+        })
+        await timeout(10000)
+
+    }
+
     const $username = await page.$('#fm-login-id');
     const $password = await page.$('#fm-login-password');
     const $loginButton = await page.$('.password-login');
     if ($username) {
         let moveCount = 0
 
-        async function move() {
-            moveCount++
-            console.log("滑块次数:", moveCount);
-            let size = await $code.boundingBox();
-            console.log(size.height);
-            await page.mouse.move(size.x, size.y);
-            await page.mouse.down();
-            await page.mouse.move(size.x + size.width, size.y, {steps: 4});
-            await page.mouse.up()
-            await timeout(3000)
-            await page.screenshot({
-                path: "./view_move_" + moveCount + ".png"
-            })
-            await timeout(2000)
-            let style = await (await (await page.$(".baxia-container")).getProperty("outerHTML")).jsonValue()
-
-            if (style.indexOf("block") < 80) {
-                await page.evaluate(async () => {
-                    try {
-                        Object.defineProperty(navigator, 'webdriver', {get: () => false})
-                    } catch (e) {
-                    }
-                })
-                await page.mouse.move(size.x, size.y);
-                await page.mouse.down();
-                await page.mouse.up();
-                await page.screenshot({
-                    path: "./view_login_" + moveCount + ".png"
-                })
-                return move()
-            }
-        }
 
         console.log("需要登录");
         await $username.type("13520944872");
@@ -103,7 +153,18 @@ async function request(url, first, test) {
         const $code = await page.$("#baxia-password");
         if ($code) {
             console.log("拖动条存在");
-            await move()
+            let dialog = await page.$("iframe#baxia-dialog-content")
+            dialog = await dialog.contentFrame()
+            await dialog.evaluate(async () => {
+                try {
+                    Object.defineProperty(navigator, 'webdriver', {get: () => false})
+                } catch (e) {
+
+                }
+            })
+            let block = await dialog.$("#nc_1_n1z")
+            let box = await block.boundingBox();
+            await move(box, moveCount, page)
         } else {
             console.log("拖动条不存在");
         }
@@ -124,7 +185,7 @@ async function request(url, first, test) {
     let numberList = [];
     try {
         urls = await page.$$eval(
-            `#J_ItemList > div > div > p.productTitle > a`,
+            currentSelector.urls(),
             element => {
                 let urls = []
                 for (let i = 0; i < element.length; i++) {
@@ -158,22 +219,25 @@ async function request(url, first, test) {
         await timeout("random");
         for (let item of randomList) {
             // let key = dataList.length - 1
-
-            let title = await page.$eval("#J_ItemList p.productTitle a", element => {
-                return element.getAttribute("title")
-            })
+            let title = await page.$eval(
+                currentSelector.face.title(item),
+                element => {
+                    return element.innerText
+                })
             await exists(title)
             if (length === 0) {
                 console.log(current, item);
+                selectPlatform(urls[item - 1])
                 if (test) {
                     await requestDetail(testUrl, true)
                 } else {
                     await requestDetail(urls[item - 1], true)
                 }
+                selectPlatform(baseUrl)
                 try {
-                    console.log("face图保存中");
+                    console.log("face图url提取中");
                     let src = await page.$eval(
-                        `#J_ItemList > div:nth-child(${item}) > div > div.productImg-wrap > a > img`, element => {
+                        currentSelector.face.img(item), element => {
                             return element.getAttribute("src")
                         });
                     src.replace("https:", "").replace("http:", "");
@@ -181,6 +245,9 @@ async function request(url, first, test) {
                     console.log("face图url提取完成");
                 } catch (e) {
                     console.log(e);
+                }
+                if (dataList[current].title !== title && dataList[current].title === "") {
+                    dataList[current].title = title
                 }
                 console.log(dataList[current]);
                 console.log(JSON.stringify(dataList[current].specifications));
@@ -190,12 +257,13 @@ async function request(url, first, test) {
                 await timeout("random");
             } else {
                 console.log("已存在", current);
+                dataList.push({title: "已存在"})
             }
             current++
         }
-        let next = await page.$("a.ui-page-next")
+        let next = await page.$(currentSelector.nextUrl)
         if (next) {
-            let nextUrl = await page.$eval("a.ui-page-next", element => {
+            let nextUrl = await page.$eval(currentSelector.nextUrl, element => {
                 return element.getAttribute("href")
             })
             urls = []
@@ -239,7 +307,7 @@ async function requestDetail(url, first) {
             keyword: query,
             title: "",
             time: `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()} ${date.getHours()}:${date.getMinutes()}:00`,
-            platform: "天猫",
+            platform,
             url: "https:" + newUrl,
             shop: "",
             originCountry: "",
@@ -312,54 +380,10 @@ async function requestDetail(url, first) {
             console.log("出现验证框");
             let box = await block.boundingBox();
             console.log(box);
-            await move(box, moveCount)
+            await move(box, moveCount, page)
 
         }
 
-        async function move(box, count) {
-            return new Promise(async resolve1 => {
-
-                let timer3 = setInterval(async () => {
-                    if (await page.$("iframe#baxia-dialog-content")) {
-                        await page.mouse.move(box.x + 10, box.y + 10);
-                        await page.mouse.down();
-                        await page.evaluate(async () => {
-                            try {
-                                Object.defineProperty(navigator, 'webdriver', {get: () => false})
-                            } catch (e) {
-
-                            }
-                        })
-                        let dialog = await page.$("iframe#baxia-dialog-content")
-                        dialog = await dialog.contentFrame()
-                        await dialog.evaluate(async () => {
-                            try {
-                                Object.defineProperty(navigator, 'webdriver', {get: () => false})
-                            } catch (e) {
-
-                            }
-                        })
-                        for (let i = 0; i < 10; i++) {
-                            await page.mouse.move(box.x + i * 30 + Math.random() * 5, box.y + 10 + Math.random() * 3, {steps: Math.floor(Math.random() * 5 + 1)});
-                        }
-                        await timeout("random");
-                        await page.mouse.up()
-                        if (await page.$("iframe#baxia-dialog-content")) {
-                            await page.mouse.down();
-                            await page.mouse.up();
-                            count++
-                        }
-                        if (count > 3) {
-                            await page.reload({waitUntil: ["networkidle0", "domcontentloaded"]});
-                        }
-                    } else {
-                        clearInterval(timer3)
-                        timer3 = null
-                        resolve1()
-                    }
-                }, 4000)
-            })
-        }
 
         let error = await page.$(".errorDetail");
         let offSales = await page.$("strong.sold-out-tit")
@@ -377,19 +401,17 @@ async function requestDetail(url, first) {
                 } catch (e) {
 
                 }
-
                 resolve()
             }, randomTime);
         } else {
-
             console.log("页面存在");
             await puppeteer.connect({browserWSEndpoint});
-            let detail = await page.$("#J_DetailMeta");
+            let detail = await page.$(currentSelector.detail.area);
             let title
             let label
             let label2
             try {
-                await page.$eval("video.lib-video", element => {
+                await page.$eval("video", element => {
                     element.pause()
                 })
             } catch (e) {
@@ -397,17 +419,19 @@ async function requestDetail(url, first) {
             }
             try {
 
-                let shop = await page.$("#side-shop-info .shopLink")
-                label = await page.$eval("#J_DetailMeta .tm-sale-prop dt.tb-metatit", element => element.innerText);
-                label2 = await page.$eval("#J_DetailMeta .tm-sale-prop:nth-child(2) dt.tb-metatit", element => element.innerText);
-                title = await page.$eval("#J_DetailMeta > div.tm-clear > div.tb-property > div > div.tb-detail-hd > h1", element => element.innerText.replaceAll("/", ""));
+                let shop = await page.$(currentSelector.detail.shop)
+                let shop2 = await page.$(currentSelector.detail.shop2)
+                label = await page.$eval(currentSelector.detail.label, element => element.innerText);
+                label2 = await page.$eval(currentSelector.detail.label2, element => element.innerText);
+                title = await page.$eval(currentSelector.detail.title, element => element.innerText.replaceAll("/", ""));
                 if (shop) {
-                    data.shop = await page.$eval("#side-shop-info .shopLink", element => element.innerText);
+                    data.shop = await page.$eval(currentSelector.detail.shop, element => element.innerText)
+                } else if (shop2) {
+                    data.shop = await page.$eval(currentSelector.detail.shop2, element => element.innerText)
                 } else {
                     data.shop = "天猫超市";
                 }
-
-                data.sales = await page.$eval(".tm-ind-sellCount .tm-count", element => element.innerText);
+                data.sales = await page.$eval(currentSelector.detail.sales, element => element.innerText);
             } catch (e) {
                 console.log(e);
                 clearInterval(timer)
@@ -416,13 +440,22 @@ async function requestDetail(url, first) {
                 timer2 = null
                 if (first) {
                     console.log("数据有误,即将重试");
-                    await page.close();
+                    try {
+                        await page.close();
+                    } catch (e) {
+
+                    }
                     await requestDetail(url, false);
                     // await timeout(10000000)
                 } else {
                     console.log("数据有误,跳过当前");
                     dataList.push(data);
-                    await page.close();
+                    try {
+                        await page.close();
+                    } catch (e) {
+
+                    }
+
                     resolve()
                     return resolve()
                 }
@@ -436,24 +469,32 @@ async function requestDetail(url, first) {
             async function initSelectArea() {
                 return new Promise(async resolve1 => {
                     try {
-                        await page.$eval("li.tb-selected", element => {
-                            element.querySelector("a").click()
-                            document.querySelector("li.tb-selected a").click()
-                        })
+
+                        await page.$eval(currentSelector.detail.selectArea + " " + currentSelector.detail.selected,
+                            (element) => {
+                                element.querySelector("a").click()
+                            }, currentSelector.detail.selectArea2)
+                        await page.$eval(currentSelector.detail.selectArea2 + " " + currentSelector.detail.selected,
+                            (element) => {
+                                element.querySelector("a").click()
+                            })
                         await timeout(1000)
                         resolve1()
                     } catch (e) {
-                        console.log(e);
+                        // console.log(e);
+                        console.log("无已选择");
+                        await timeout(1000)
+                        resolve1()
                     }
                 })
 
             }
 
-            let selectArea = await page.$("dl.tm-sale-prop")
+            let selectArea = await page.$(currentSelector.detail.selectArea)
             if (selectArea) {
                 await initSelectArea()
                 console.log("选择区已初始化");
-                let one = await page.$$("dl.tm-sale-prop:nth-child(1) li:not(.tb-out-of-stock)")
+                let one = await page.$$(currentSelector.detail.selectArea + " " + currentSelector.detail.item)
                 console.log("O可选择数量", one.length);
                 for (let i = 0; i < one.length; i++) {
                     await initSelectArea()
@@ -462,31 +503,32 @@ async function requestDetail(url, first) {
                     let prices = []
                     try {
                         labelText = await page.$eval(
-                            `dl.tm-sale-prop:nth-child(1)`,
-                            (element, i) => {
-                                let spans = element.querySelectorAll("li:not(.tb-out-of-stock) span")
+                            currentSelector.detail.selectArea,
+                            (element, i, li) => {
+                                let spans = element.querySelectorAll(li + " span")
                                 spans[i].parentElement.click()
                                 return spans[i].innerText
-                            }, i)
+                            }, i, currentSelector.detail.item)
                     } catch (e) {
                         console.log(e);
                     }
                     await timeout(1000, true)
-                    let two = await page.$$("dl.tm-sale-prop:nth-child(2) li:not(.tb-out-of-stock)")
+                    let two = await page.$$(currentSelector.detail.selectArea2 + " " + currentSelector.detail.item)
                     console.log("T可选择数量", two.length);
                     for (let j = 0; j < two.length; j++) {
                         try {
                             console.log("第", i + 1, "行,第", j + 1, "个");
                             //第二行的可选择数量
                             let text = await page.$eval(
-                                `dl.tm-sale-prop:nth-child(2)`,
-                                (element, j) => {
-                                    let spans = element.querySelectorAll("li:not(.tb-out-of-stock) span")
-                                    spans[j].parentElement.click()
+                                currentSelector.detail.selectArea2,
+                                (element, j, li) => {
+                                    let spans = element.querySelectorAll(li + " span")
+                                    let as = element.querySelectorAll(li + " a")
+                                    as[j].click()
                                     return spans[j].innerText
-                                }, j)
+                                }, j, currentSelector.detail.item)
                             await timeout(500, true)
-                            let price = await page.$$eval("span.tm-price", elements => {
+                            let price = await page.$$eval(currentSelector.detail.price, elements => {
                                 return elements[elements.length - 1].innerText
                             })
                             prices.push({
@@ -508,18 +550,24 @@ async function requestDetail(url, first) {
 
                 }
             }
-            let details = await page.$$eval("#J_AttrUL li", elements => {
-                let list = []
-                elements.forEach((value, index) => {
-                    let text = value.innerText
-                    list.push(text.split(":"))
+            let details = await page.$$eval(
+                currentSelector.detail.details,
+                elements => {
+                    let list = []
+                    elements.forEach((value, index) => {
+                        let text = value.innerText
+                        if (text.indexOf("：") !== -1) {
+                            list.push(text.split("："))
+                        } else {
+                            list.push(text.split(":"))
+                        }
+                    })
+                    return list
                 })
-                return list
-            })
             console.log(details);
             for (let detail1 of details) {
-                let text = detail1[1]
-                switch (detail1[0]) {
+                let text = detail1[1].trim()
+                switch (detail1[0].trim()) {
                     case  "产地":
                         data.originCountry = text
                         break
@@ -545,6 +593,7 @@ async function requestDetail(url, first) {
                 detail && await detail.screenshot({
                     path: folderName + "/detail.png"
                 });
+                console.log("截图成功");
             } catch (e) {
                 console.log("截图失败", e);
             }
@@ -592,6 +641,7 @@ function randomSort(arr, newArr) {
 }
 
 async function exists(title) {
+    console.log(title);
     return new Promise(resolve => {
         connection.query(
             "select * from tmall where title = ?",
@@ -599,7 +649,6 @@ async function exists(title) {
             async (err, result) => {
                 length = result.length
                 resolve();
-
             })
     })
 }
@@ -663,5 +712,72 @@ async function insert({
 
 }
 
+async function move(box, count, page) {
+    return new Promise(async resolve1 => {
+
+        let timer3 = setInterval(async () => {
+            try {
+                if (await page.$("iframe#baxia-dialog-content")) {
+                    await page.mouse.move(box.x + 10, box.y + 10);
+                    await page.mouse.down();
+                    await page.evaluate(async () => {
+                        try {
+                            Object.defineProperty(navigator, 'webdriver', {get: () => false})
+                        } catch (e) {
+
+                        }
+                    })
+                    let dialog = await page.$("iframe#baxia-dialog-content")
+                    dialog = await dialog.contentFrame()
+                    await dialog.evaluate(async () => {
+                        try {
+                            Object.defineProperty(navigator, 'webdriver', {get: () => false})
+                        } catch (e) {
+
+                        }
+                    })
+                    for (let i = 0; i < 10; i++) {
+                        await page.mouse.move(box.x + i * 50 + Math.random() * 5, box.y + 10 + Math.random() * 2, {steps: Math.floor(Math.random() * 3 + 1)});
+                    }
+                    await timeout(1874);
+                    await page.mouse.up()
+                    await timeout("random");
+                    if (await page.$("iframe#baxia-dialog-content")) {
+                        await page.mouse.move(box.x + 10, box.y + 10);
+                        await page.mouse.down();
+                        await page.mouse.up();
+                        count++
+                    }
+                    if (count > 2) {
+                        count = 0
+                        await page.reload({waitUntil: ["networkidle0", "domcontentloaded"]});
+                        await timeout("random");
+                        await timeout("random");
+                    }
+                } else {
+                    clearInterval(timer3)
+                    timer3 = null
+                    resolve1()
+                }
+            } catch (e) {
+
+            }
+
+        }, 4000)
+    })
+}
+
+function selectPlatform(url) {
+    if (url.indexOf("tmall.com") !== -1) {
+        currentSelector = selector.tmall
+        platform = "天猫"
+    } else if (url.indexOf("taobao.com") !== -1) {
+        currentSelector = selector.taobao
+        platform = "淘宝"
+    } else if (url.indexOf("jd.com") !== -1) {
+        currentSelector = selector.jd
+        platform = "京东"
+    }
+}
 
 request(url, true, false).then(r => console.log("结束"));
