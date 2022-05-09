@@ -13,8 +13,9 @@ let connection = mysql.createPool({
     current = 0,
     query = "柚子",
     // baseUrl = "https://list.tmall.com/search_product.htm",
-    baseUrl = "https://s.taobao.com/search",
-    url = baseUrl + "?q=" + query,
+    // baseUrl = "https://s.taobao.com/search",
+    baseUrl = "https://search.jd.com/Search",
+    url = baseUrl + "?keyword=" + query,
     dataList = [],
     urls = [],
     browserWSEndpoint,
@@ -23,10 +24,9 @@ let connection = mysql.createPool({
     folderName = "";
 
 let selector = {
-    "taobao": {
-        urls() {
-            return `div.ctx-box.J_MouseEneterLeave.J_IconMoreNew > .title > a`
-        },
+    taobao: {
+        platform: "taobao",
+        urls: `div.ctx-box.J_MouseEneterLeave.J_IconMoreNew > .title > a`,
         face: {
             a(index) {
                 return `#mainsrp-itemlist .items .item:nth-child(${index}) .title > a`
@@ -55,10 +55,9 @@ let selector = {
         },
         nextUrl: ".item.next"
     },
-    "tmall": {
-        urls() {
-            return `#J_ItemList > div > div > p.productTitle > a`
-        },
+    tmall: {
+        platform: "tmall",
+        urls: `#J_ItemList > div > div > p.productTitle > a`,
         face: {
             a(index) {
                 return `#J_ItemList div.product:nth-child(${index}) p.productTitle a`
@@ -87,7 +86,37 @@ let selector = {
         },
         nextUrl: "a.ui-page-next"
     },
-    jd: {}
+    jd: {
+        platform: "jd",
+        urls: "#J_goodsList > ul li.gl-item .p-name a",
+        face: {
+            a(index) {
+                return `#J_goodsList > ul > li:nth-child(${index}) > div > div.p-name > a`
+            },
+            title(index) {
+                return `#J_goodsList > ul > li:nth-child(${index}) > div > div.p-name > a`
+            },
+            img(index) {
+                return `#J_goodsList > ul > li:nth-child(${index}) > div > div.p-img > a > img`
+            }
+        },
+        detail: {
+            area: "body > div:nth-child(10) > div",
+            title: "body > div:nth-child(10) > div > div.itemInfo-wrap > div.sku-name",
+            shop: "#popbox > div > div.mt > h3 > a",
+            shop2: "#crumb-wrap > div > div.contact.fr.clearfix > div.J-hove-wrap.EDropdown.fr > div:nth-child(1) > div > a",
+            label: "#choose-attr-1 > .dt",
+            label2: "#choose-attr-2 > .dt",
+            price: "body > div:nth-child(10) > div > div.itemInfo-wrap > div.summary.summary-first > div > div.summary-price.J-summary-price > div.dd > span.p-price > span.price",
+            sales: "#comment-count > a",
+            selectArea: "#choose-attr-1 > div.dd",
+            selectArea2: "#choose-attr-2 > div.dd",
+            selected: ".item.selected",
+            item: ".item",
+            details: ".p-parameter-list li"
+        },
+        nextUrl: "a.ui-page-next"
+    }
 }
 let currentSelector
 
@@ -185,7 +214,7 @@ async function request(url, first, test) {
     let numberList = [];
     try {
         urls = await page.$$eval(
-            currentSelector.urls(),
+            currentSelector.urls,
             element => {
                 let urls = []
                 for (let i = 0; i < element.length; i++) {
@@ -224,7 +253,7 @@ async function request(url, first, test) {
                 element => {
                     return element.innerText
                 })
-            await exists(title)
+            await exists(title.replaceAll("/", "-"))
             if (length === 0) {
                 console.log(current, item);
                 selectPlatform(urls[item - 1])
@@ -263,14 +292,17 @@ async function request(url, first, test) {
         }
         let next = await page.$(currentSelector.nextUrl)
         if (next) {
-            let nextUrl = await page.$eval(currentSelector.nextUrl, element => {
-                return element.getAttribute("href")
+            await (await page.$(currentSelector.nextUrl)).click()
+            await timeout(3000)
+            let nextUrl = await page.evaluate(() => {
+                return location.href
             })
+            console.log("下一页");
             urls = []
             dataList = []
             current = 0
             await page.close()
-            return request(baseUrl + nextUrl, false)
+            return request(nextUrl, false)
         }
 
     } else {
@@ -301,7 +333,7 @@ async function requestDetail(url, first) {
         let randomTime = parseInt((Math.random() * 10000).toFixed(0));
 
         let date = new Date();
-        newUrl.replaceAll("https:", "").replaceAll("http:", "");
+        newUrl = newUrl.replaceAll("https:", "").replaceAll("http:", "");
 
         let data = {
             keyword: query,
@@ -346,6 +378,7 @@ async function requestDetail(url, first) {
         await timeout("random");
         try {
             page.evaluate(() => {
+
                 let totalHeight = 0;
                 timer = setInterval(() => {
                     let scrollHeight = 600 || document.body.scrollHeight;
@@ -368,6 +401,25 @@ async function requestDetail(url, first) {
         // } catch (e) {
         //     console.log(e);
         // }
+
+        async function jdCheck() {
+            let one = await page.$(currentSelector.detail.selectArea)
+            let two = await page.$(currentSelector.detail.selectArea2)
+            if (!one && two) {
+                let oneSelect = currentSelector.detail.selectArea
+                let oneLabel = currentSelector.detail.label
+                let twoSelect = currentSelector.detail.selectArea2
+                let twoLabel = currentSelector.detail.label2
+                currentSelector.detail.selectArea = twoSelect
+                currentSelector.detail.label = twoLabel
+                currentSelector.detail.selectArea2 = oneSelect
+                currentSelector.detail.label2 = oneLabel
+            }
+        }
+
+        if (platform === "京东") {
+            await jdCheck()
+        }
         let dialog = await page.$("iframe#baxia-dialog-content")
         if (dialog) {
             let moveCount = 0
@@ -406,10 +458,12 @@ async function requestDetail(url, first) {
         } else {
             console.log("页面存在");
             await puppeteer.connect({browserWSEndpoint});
-            let detail = await page.$(currentSelector.detail.area);
-            let title
-            let label
-            let label2
+            let detail,
+                title,
+                shop,
+                shop2,
+                label,
+                label2
             try {
                 await page.$eval("video", element => {
                     element.pause()
@@ -418,12 +472,15 @@ async function requestDetail(url, first) {
                 // console.log(e);
             }
             try {
-
-                let shop = await page.$(currentSelector.detail.shop)
-                let shop2 = await page.$(currentSelector.detail.shop2)
+                shop = await page.$(currentSelector.detail.shop)
+                shop2 = await page.$(currentSelector.detail.shop2)
                 label = await page.$eval(currentSelector.detail.label, element => element.innerText);
-                label2 = await page.$eval(currentSelector.detail.label2, element => element.innerText);
-                title = await page.$eval(currentSelector.detail.title, element => element.innerText.replaceAll("/", ""));
+                try {
+                    label2 = await page.$eval(currentSelector.detail.label2, element => element.innerText);
+                } catch (e) {
+                    console.log("没有label2");
+                }
+                title = await page.$eval(currentSelector.detail.title, element => element.innerText.replaceAll("/", "-"));
                 if (shop) {
                     data.shop = await page.$eval(currentSelector.detail.shop, element => element.innerText)
                 } else if (shop2) {
@@ -506,15 +563,31 @@ async function requestDetail(url, first) {
                             currentSelector.detail.selectArea,
                             (element, i, li) => {
                                 let spans = element.querySelectorAll(li + " span")
-                                spans[i].parentElement.click()
-                                return spans[i].innerText
+                                let as = element.querySelectorAll(li + " a")
+                                as[i].click()
+                                return (spans[i] || as[i]).innerText
                             }, i, currentSelector.detail.item)
+                        let timer4 = setTimeout(async () => {
+                            try {
+                                page.reload({waitUntil: ["networkidle0", "domcontentloaded"]});
+                            } catch (e) {
+                            }
+                        }, 7000)
+                        await page.waitForSelector(currentSelector.detail.price)
+                        clearTimeout(timer4)
+                        timer4 = null
                     } catch (e) {
                         console.log(e);
                     }
                     await timeout(1000, true)
                     let two = await page.$$(currentSelector.detail.selectArea2 + " " + currentSelector.detail.item)
                     console.log("T可选择数量", two.length);
+                    if (!two.length) {
+                        prices = await page.$$eval(currentSelector.detail.price, elements => {
+                            return elements[elements.length - 1].innerText
+                        })
+                        title = title.replace(/\\n/g, "").replaceAll(labelText, "")
+                    }
                     for (let j = 0; j < two.length; j++) {
                         try {
                             console.log("第", i + 1, "行,第", j + 1, "个");
@@ -525,9 +598,19 @@ async function requestDetail(url, first) {
                                     let spans = element.querySelectorAll(li + " span")
                                     let as = element.querySelectorAll(li + " a")
                                     as[j].click()
-                                    return spans[j].innerText
+                                    return (spans[j] || as[j]).innerText
                                 }, j, currentSelector.detail.item)
+                            let timer4 = setTimeout(async () => {
+                                try {
+                                    page.reload({waitUntil: ["networkidle0", "domcontentloaded"]});
+                                } catch (e) {
+                                }
+                            }, 7000)
+                            await page.waitForSelector(currentSelector.detail.price)
+                            clearTimeout(timer4)
+                            timer4 = null
                             await timeout(500, true)
+                            console.log("判断价格");
                             let price = await page.$$eval(currentSelector.detail.price, elements => {
                                 return elements[elements.length - 1].innerText
                             })
@@ -536,6 +619,9 @@ async function requestDetail(url, first) {
                                 label: text,
                                 price
                             })
+                            if (platform === "京东") {
+                                title = title.replace(/\\n/g, "").replaceAll(labelText, "")
+                            }
 
                         } catch (e) {
                             console.log(e);
@@ -569,6 +655,8 @@ async function requestDetail(url, first) {
                 let text = detail1[1].trim()
                 switch (detail1[0].trim()) {
                     case  "产地":
+                    case "商品产地":
+                    case "原产地":
                         data.originCountry = text
                         break
                     case "省份":
@@ -579,6 +667,8 @@ async function requestDetail(url, first) {
                         break
                     case "特产品类":
                     case "水果种类":
+                    case "品种":
+                    case "种类":
                         data.variety = text
                         break
                 }
@@ -590,6 +680,7 @@ async function requestDetail(url, first) {
                 fs.mkdirSync(folderName);
             }
             try {
+                detail = await page.$(currentSelector.detail.area);
                 detail && await detail.screenshot({
                     path: folderName + "/detail.png"
                 });
