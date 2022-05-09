@@ -238,7 +238,7 @@ async function requestDetail(url, first) {
         let data = {
             keyword: query,
             title: "",
-            time: `${date.getFullYear()}-${date.getMonth() - 1}-${date.getDate()} ${date.getHours()}:${date.getMinutes()}:00`,
+            time: `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()} ${date.getHours()}:${date.getMinutes()}:00`,
             platform: "天猫",
             url: "https:" + newUrl,
             shop: "",
