@@ -2,7 +2,6 @@ const puppeteer = require('puppeteer');
 const fs = require('fs');
 
 const mysql = require("mysql");
-const {val} = require("cheerio/lib/api/attributes");
 let connection = mysql.createPool({
         host: "localhost",
         port: "3306",
@@ -13,10 +12,12 @@ let connection = mysql.createPool({
     }), browser,
     current = 0,
     query = "柚子",
-    url = "https://list.tmall.com/search_product.htm?q=" + query,
+    baseUrl = "https://list.tmall.com/search_product.htm",
+    url = baseUrl + "?q=" + query,
     dataList = [],
     urls = [],
     browserWSEndpoint,
+    length = 0,
     folderName = "";
 
 async function request(url, first, test) {
@@ -157,32 +158,53 @@ async function request(url, first, test) {
         await timeout("random");
         for (let item of randomList) {
             // let key = dataList.length - 1
-            console.log(current, item);
-            if (test) {
-                await requestDetail(testUrl, true)
+
+            let title = await page.$eval("#J_ItemList p.productTitle a", element => {
+                return element.getAttribute("title")
+            })
+            await exists(title)
+            if (length === 0) {
+                console.log(current, item);
+                if (test) {
+                    await requestDetail(testUrl, true)
+                } else {
+                    await requestDetail(urls[item - 1], true)
+                }
+                try {
+                    console.log("face图保存中");
+                    let src = await page.$eval(
+                        `#J_ItemList > div:nth-child(${item}) > div > div.productImg-wrap > a > img`, element => {
+                            return element.getAttribute("src")
+                        });
+                    src.replace("https:", "").replace("http:", "");
+                    dataList[current].face = "https:" + src
+                    console.log("face图url提取完成");
+                } catch (e) {
+                    console.log(e);
+                }
+                console.log(dataList[current]);
+                console.log(JSON.stringify(dataList[current].specifications));
+                console.log(dataList[current].specifications[0]);
+                await insert(dataList[current])
+                console.log(current, "完成");
+                await timeout("random");
             } else {
-                await requestDetail(urls[item - 1], true)
+                console.log("已存在", current);
             }
-            try {
-                console.log("face图保存中");
-                let src = await page.$eval(
-                    `#J_ItemList > div:nth-child(${item}) > div > div.productImg-wrap > a > img`, element => {
-                        return element.getAttribute("src")
-                    });
-                src.replace("https:", "").replace("http:", "");
-                dataList[current].face = "https:" + src
-                console.log("face图url提取完成");
-            } catch (e) {
-                console.log(e);
-            }
-            console.log(dataList[current]);
-            console.log(JSON.stringify(dataList[current].specifications));
-            console.log(dataList[current].specifications[0]);
-            await insert(dataList[current])
-            console.log(current, "完成");
             current++
-            await timeout("random");
         }
+        let next = await page.$("a.ui-page-next")
+        if (next) {
+            let nextUrl = await page.$eval("a.ui-page-next", element => {
+                return element.getAttribute("href")
+            })
+            urls = []
+            dataList = []
+            current = 0
+            await page.close()
+            return request(baseUrl + nextUrl, false)
+        }
+
     } else {
         await page.close()
         return request(url, false)
@@ -216,7 +238,7 @@ async function requestDetail(url, first) {
         let data = {
             keyword: query,
             title: "",
-            time: `${date.getFullYear()}-${date.getMonth() - 1}-${date.getDate()}`,
+            time: `${date.getFullYear()}-${date.getMonth() - 1}-${date.getDate()} ${date.getHours()}:${date.getMinutes()}:00`,
             platform: "天猫",
             url: "https:" + newUrl,
             shop: "",
@@ -264,6 +286,7 @@ async function requestDetail(url, first) {
                     if (totalHeight >= scrollHeight) {
                         window.scrollTo(0, 150);
                         clearInterval(timer);
+                        timer = null
                     }
                 }, 100);
             })
@@ -279,42 +302,73 @@ async function requestDetail(url, first) {
         // }
         let dialog = await page.$("iframe#baxia-dialog-content")
         if (dialog) {
+            let moveCount = 0
+            clearInterval(timer)
+            clearTimeout(timer2)
+            timer = null
+            timer2 = null
             dialog = await dialog.contentFrame()
             let block = await dialog.$("#nc_1_n1z")
             console.log("出现验证框");
-
             let box = await block.boundingBox();
             console.log(box);
-            // await dialog.hover("#nc_1_n1z")
-            await page.mouse.move(box.x + 10, box.y + 10);
-            await page.mouse.down();
-            await page.evaluate(async () => {
-                Object.defineProperty(navigator, 'webdriver', {get: () => false})
-            })
-            await dialog.evaluate(async () => {
-                Object.defineProperty(navigator, 'webdriver', {get: () => false})
-            })
-
-            // await timeout(10000)
-            await page.mouse.move(box.x + 300, box.y + 10, {steps: 4});
-            // await timeout(10000)
-            await timeout("random");
-            await page.mouse.up()
-            await timeout(3000)
-            console.log("再次滑动");
-            await page.mouse.move(box.x + 10, box.y + 10);
-            await page.mouse.down();
-            await page.mouse.move(box.x + 300, box.y + 10, {steps: 4});
-            await timeout("random");
-            await page.mouse.up()
+            await move(box, moveCount)
 
         }
+
+        async function move(box, count) {
+            return new Promise(async resolve1 => {
+
+                let timer3 = setInterval(async () => {
+                    if (await page.$("iframe#baxia-dialog-content")) {
+                        await page.mouse.move(box.x + 10, box.y + 10);
+                        await page.mouse.down();
+                        await page.evaluate(async () => {
+                            try {
+                                Object.defineProperty(navigator, 'webdriver', {get: () => false})
+                            } catch (e) {
+
+                            }
+                        })
+                        let dialog = await page.$("iframe#baxia-dialog-content")
+                        dialog = await dialog.contentFrame()
+                        await dialog.evaluate(async () => {
+                            try {
+                                Object.defineProperty(navigator, 'webdriver', {get: () => false})
+                            } catch (e) {
+
+                            }
+                        })
+                        for (let i = 0; i < 10; i++) {
+                            await page.mouse.move(box.x + i * 30 + Math.random() * 5, box.y + 10 + Math.random() * 3, {steps: Math.floor(Math.random() * 5 + 1)});
+                        }
+                        await timeout("random");
+                        await page.mouse.up()
+                        if (await page.$("iframe#baxia-dialog-content")) {
+                            await page.mouse.down();
+                            await page.mouse.up();
+                            count++
+                        }
+                        if (count > 3) {
+                            await page.reload({waitUntil: ["networkidle0", "domcontentloaded"]});
+                        }
+                    } else {
+                        clearInterval(timer3)
+                        timer3 = null
+                        resolve1()
+                    }
+                }, 4000)
+            })
+        }
+
         let error = await page.$(".errorDetail");
         let offSales = await page.$("strong.sold-out-tit")
         if (error || offSales) {
             console.log("页面丢失");
             clearInterval(timer)
             clearTimeout(timer2)
+            timer = null
+            timer2 = null
             dataList.push(data);
             setTimeout(async () => {
                 console.log("页面关闭");
@@ -358,7 +412,8 @@ async function requestDetail(url, first) {
                 console.log(e);
                 clearInterval(timer)
                 clearTimeout(timer2)
-
+                timer = null
+                timer2 = null
                 if (first) {
                     console.log("数据有误,即将重试");
                     await page.close();
@@ -369,11 +424,13 @@ async function requestDetail(url, first) {
                     dataList.push(data);
                     await page.close();
                     resolve()
-                    return
+                    return resolve()
                 }
             }
             clearInterval(timer)
             clearTimeout(timer2)
+            timer = null
+            timer2 = null
             console.log("处理detail");
 
             async function initSelectArea() {
@@ -500,7 +557,7 @@ async function requestDetail(url, first) {
             }
             console.log("页面关闭");
             await timeout("random");
-            return resolve()
+            resolve()
         }
     })
 
@@ -534,6 +591,19 @@ function randomSort(arr, newArr) {
     randomSort(arr, newArr);
 }
 
+async function exists(title) {
+    return new Promise(resolve => {
+        connection.query(
+            "select * from tmall where title = ?",
+            [title],
+            async (err, result) => {
+                length = result.length
+                resolve();
+
+            })
+    })
+}
+
 async function insert({
                           keyword,
                           title,
@@ -548,53 +618,49 @@ async function insert({
                           specifications,
                           sales
                       }) {
-    return new Promise((resolve, reject) => {
-        connection.query(
-            "select * from tmall where url = ?",
-            [url],
-            async (err, result) => {
-                if (result.length === 0) {
-                    console.log("开始添加");
-                    await connection.query(
-                        `INSERT INTO tmall (keyword,
-                                            title,
-                                            time,
-                                            platform,
-                                            url,
-                                            shop,
-                                            originCountry,
-                                            originProvince,
-                                            originAddress,
-                                            variety,
-                                            specifications,
-                                            sales)
-                         VALUES ('${keyword}',
-                                 '${title}',
-                                 '${time}',
-                                 '${platform}',
-                                 '${url}',
-                                 '${shop}',
-                                 '${originCountry}',
-                                 '${originProvince}',
-                                 '${originAddress}',
-                                 '${variety}',
-                                 '${JSON.stringify(specifications)}',
-                                 '${sales}');`,
-                        (err, result) => {
-                            if (err) {
-                                throw err;
-                            }
-                            resolve();
+    return new Promise(async (resolve, reject) => {
+            await exists(title)
+            if (length === 0) {
+                console.log("开始添加");
+                await connection.query(
+                    `INSERT INTO tmall (keyword,
+                                        title,
+                                        time,
+                                        platform,
+                                        url,
+                                        shop,
+                                        originCountry,
+                                        originProvince,
+                                        originAddress,
+                                        variety,
+                                        specifications,
+                                        sales)
+                     VALUES ('${keyword}',
+                             '${title}',
+                             '${time}',
+                             '${platform}',
+                             '${url}',
+                             '${shop}',
+                             '${originCountry}',
+                             '${originProvince}',
+                             '${originAddress}',
+                             '${variety}',
+                             '${JSON.stringify(specifications)}',
+                             '${sales}');`,
+                    (err, result) => {
+                        if (err) {
+                            throw err;
                         }
-                    );
-                } else {
-                    console.log("已存在");
-                    resolve();
-                }
+                        resolve();
+                    }
+                );
+            } else {
+                console.log("已存在");
+                resolve();
             }
-        );
+        }
+    );
 
-    })
 }
 
 
