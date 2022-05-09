@@ -115,7 +115,7 @@ let selector = {
             item: ".item",
             details: ".p-parameter-list li"
         },
-        nextUrl: "a.ui-page-next"
+        nextUrl: "a.pn-next"
     }
 }
 let currentSelector
