@@ -13,8 +13,8 @@ let connection = mysql.createPool({
     current = 0,
     query = "柚子",
     // baseUrl = "https://list.tmall.com/search_product.htm",
-    // baseUrl = "https://s.taobao.com/search",
-    baseUrl = "https://search.jd.com/Search",
+    baseUrl = "https://s.taobao.com/search",
+    // baseUrl = "https://search.jd.com/Search",
     url = baseUrl + "?keyword=" + query,
     dataList = [],
     urls = [],
@@ -25,6 +25,7 @@ let connection = mysql.createPool({
 
 let selector = {
     taobao: {
+        search: "input.search-combobox-input",
         platform: "taobao",
         urls: `div.ctx-box.J_MouseEneterLeave.J_IconMoreNew > .title > a`,
         face: {
@@ -56,6 +57,7 @@ let selector = {
         nextUrl: ".item.next"
     },
     tmall: {
+        search: "input#mq",
         platform: "tmall",
         urls: `#J_ItemList > div > div > p.productTitle > a`,
         face: {
@@ -87,6 +89,7 @@ let selector = {
         nextUrl: "a.ui-page-next"
     },
     jd: {
+        search: "input#key",
         platform: "jd",
         urls: "#J_goodsList > ul li.gl-item .p-name a",
         face: {
@@ -129,6 +132,7 @@ async function request(url, first, test) {
             ignoreHTTPSErrors: true,
             headless: false,
             userDataDir: 'test-profile-dir',
+            devtools: true,
             args: [
                 "--no-sandbox",
                 "--disable-setuid-sandbox",
@@ -156,6 +160,14 @@ async function request(url, first, test) {
         deviceScaleFactor: 1,
     });
     await page.goto(url);
+    if (first) {
+        selectPlatform(url)
+        await page.focus(currentSelector.search);
+        await page.keyboard.type(query, {delay: 100});
+        await page.keyboard.press('Enter');
+        await page.waitForNavigation()
+    }
+
     let error = await page.$(".warnning-text")
     if (error) {
         await page.evaluate(async () => {
@@ -269,7 +281,7 @@ async function request(url, first, test) {
                         currentSelector.face.img(item), element => {
                             return element.getAttribute("src")
                         });
-                    src.replace("https:", "").replace("http:", "");
+                    src = src.replace("https:", "").replace("http:", "");
                     dataList[current].face = "https:" + src
                     console.log("face图url提取完成");
                 } catch (e) {
@@ -547,7 +559,13 @@ async function requestDetail(url, first) {
 
             }
 
-            let selectArea = await page.$(currentSelector.detail.selectArea)
+            let selectArea
+            try {
+                selectArea = await page.$(currentSelector.detail.selectArea)
+            } catch (e) {
+                resolve()
+                return
+            }
             if (selectArea) {
                 await initSelectArea()
                 console.log("选择区已初始化");
