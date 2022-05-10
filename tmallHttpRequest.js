@@ -160,8 +160,9 @@ async function request(url, first, test) {
         deviceScaleFactor: 1,
     });
     await page.goto(url);
+    selectPlatform(url)
+    await page.waitForSelector(currentSelector.search)
     if (first) {
-        selectPlatform(url)
         await page.focus(currentSelector.search);
         await page.keyboard.type(query, {delay: 100});
         await page.keyboard.press('Enter');
@@ -174,7 +175,7 @@ async function request(url, first, test) {
             Object.defineProperty(navigator, 'webdriver', {get: () => false})
         })
         await timeout(10000)
-
+        await page.waitForNavigation()
     }
 
     const $username = await page.$('#fm-login-id');
@@ -190,7 +191,6 @@ async function request(url, first, test) {
         await page.click('body');
         console.log("等待拖动条");
 
-        await timeout(3000)
         const $code = await page.$("#baxia-password");
         if ($code) {
             console.log("拖动条存在");
