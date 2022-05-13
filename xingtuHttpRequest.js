@@ -32,14 +32,14 @@ async function timeout(type, log) {
     })
 }
 
-async function init(url, first,) {
+async function init(url, first, exports) {
     if (first) {
         console.log("初始化");
         await puppeteer.launch({
             ignoreHTTPSErrors: true,
             headless: false,
             userDataDir: 'test-profile-dir',
-            devtools: true,
+            devtools: false,
             args: [
                 "--no-sandbox",
                 "--disable-setuid-sandbox",
@@ -77,55 +77,109 @@ async function init(url, first,) {
     await page.$eval($.check, element => element.click())
     await page.$eval($.login, element => element.click())
     await page.waitForNavigation()
-    await page.goto("https://www.xingtu.cn/ad/creator/hot")
-    await page.mainFrame().addScriptTag({
-        url: 'https://cdn.bootcss.com/jquery/3.2.0/jquery.min.js'
-    })
+    if (exports) {
+        await page.goto("https://www.xingtu.cn/ad/creator/user/tool/export/author?platform_source=1")
+        await page.mainFrame().addScriptTag({
+            url: 'https://cdn.bootcss.com/jquery/3.2.0/jquery.min.js'
+        })
+        await page.waitForSelector($.checkBoxListItem)
 
-    await timeout(3000)
+        let max = await page.$eval("ul.el-pager li.number:last-child", (element) => {
+            return parseInt(element.innerText)
+        })
+        let star = 51
+        if (star) {
+            await page.focus($.pageInput);
+            await page.keyboard.press('Backspace');
+            await page.keyboard.press('Backspace');
+            await page.keyboard.press('Backspace');
+            await page.keyboard.press('Backspace');
+            await page.keyboard.press('Backspace');
+            await page.keyboard.press('Backspace');
+            await page.keyboard.press('Backspace');
+            await page.keyboard.press('Backspace');
+            await (await page.$($.pageInput)).type((star + 1).toString())
+            await page.keyboard.press('Enter')
+            await timeout(3000)
+        }
 
-    await page.evaluate(() => {
-        window.$("li > div:contains('头条')").remove()
-        window.$("li > div:contains('西瓜')").remove()
-        return null
-    })
-    await timeout(2000)
-    let listItems = await page.$$("ul ul ul li")
-    for (let i = 6; i < listItems.length; i++) {
-        console.log("榜单", i);
-        await await page.$$("ul ul ul li")[i].click()
-        await timeout(5000)
-        let rankData = await page.evaluate((selector) => {
-            let list = []
-            let elements = document.querySelectorAll(selector)
-            let images = document.querySelectorAll(selector + " img")
-            // list.push(elements.length)
-            elements.forEach((element, key) => {
-                let cache = element.innerText.split("\t")
-                let data = {
-                    id: element.classList[0].replaceAll("star-", ""),
-                    rank: cache[0],
-                    name: cache[1].replaceAll("\n", ""),
-                    avatar: images[key].getAttribute("src"),
-                    fansCount: cache[2],
-                    rating: cache[3],
-                    type: cache[4],
-                    playNumber: cache[5],
-                    gpm: cache[6]
-                }
-                list.push(element.classList[0].replaceAll("star-", ""))
+        for (let i = star; i < max; i++) {
+            console.log("当前页数", i + 1);
+            await page.evaluate((selector) => {
+                let list = document.querySelectorAll(selector)
+                let index = 0
+                let timer = setInterval(() => {
+                    list[index].click()
+                    index++
+                    if (index >= 10) {
+                        clearInterval(timer)
+                        timer = null
+                        return null
+                    }
+                }, 100)
+            }, $.checkBoxListItem)
+            await timeout(2000)
+            await page.evaluate((selector) => {
+                window.$(selector).click()
+            }, $.downloadButton2)
+            await checkDownload()
+            let nextButton = await page.$(".btn-next")
+            let item = await page.$$($.checkBoxListItem2)
+            for (let j = 0; j < item.length; j++) {
+                console.log("右侧", j);
+                await item[j].click()
+                await timeout(100)
+            }
+            console.log("点击下一页");
+            await nextButton.click()
+            await timeout(2000)
+        }
+    } else {
+        await page.goto("https://www.xingtu.cn/ad/creator/hot")
+        await page.mainFrame().addScriptTag({
+            url: 'https://cdn.bootcss.com/jquery/3.2.0/jquery.min.js'
+        })
+        await timeout(3000)
+        await page.evaluate(() => {
+            window.$("li > div:contains('头条')").remove()
+            window.$("li > div:contains('西瓜')").remove()
+            return null
+        })
+        await timeout(2000)
+        let listItems = await page.$$("ul ul ul li")
+        for (let i = 6; i < listItems.length; i++) {
+            console.log("榜单", i);
+            await await page.$$("ul ul ul li")[i].click()
+            await timeout(5000)
+            let rankData = await page.evaluate((selector) => {
+                let list = []
+                let elements = document.querySelectorAll(selector)
+                let images = document.querySelectorAll(selector + " img")
+                // list.push(elements.length)
+                elements.forEach((element, key) => {
+                    let cache = element.innerText.split("\t")
+                    let data = {
+                        id: element.classList[0].replaceAll("star-", ""),
+                        rank: cache[0],
+                        name: cache[1].replaceAll("\n", ""),
+                        avatar: images[key].getAttribute("src"),
+                        fansCount: cache[2],
+                        rating: cache[3],
+                        type: cache[4],
+                        playNumber: cache[5],
+                        gpm: cache[6]
+                    }
+                    list.push(element.classList[0].replaceAll("star-", ""))
+                }, $.listItem)
+                return list
             }, $.listItem)
-            return list
-        }, $.listItem)
-        console.log(rankData);
-        for (let i = 0; i < rankData.length; i++) {
-            await nextRequest(rankData[i])
-
+            console.log(rankData);
+            for (let i = 0; i < rankData.length; i++) {
+                await nextRequest(rankData[i])
+            }
         }
     }
-
 }
-
 
 async function nextRequest(id) {
     await exists(id)
@@ -231,6 +285,10 @@ let selector = {
     list: "div.platform-1  table.hot-star-table:nth-child(2)",
     listItem: "div.platform-1  table.hot-star-table:nth-child(2) > tbody > tr",
     downloadButton: "button:contains('导出数据')",
+    downloadButton2: "button:contains('导出达人信息')",
+    checkBoxListItem: "body > div > div.star-layout > div.content-wrapper > div.body-content > div.content > div > div.card-panel.no-border > div.card-panel-body > div > div.transfer-panel > div.transfer-panel-left-container > ul .transfer-item",
+    checkBoxListItem2: ".transfer-panel-right-container ul.transfer-list .transfer-item",
+    pageInput: "input[type='number'].el-input__inner"
 }
 let $ = selector
-init(requestData.url, true).then(res => console.log("结束"))
+init(requestData.url, true, true).then(res => console.log("结束"))

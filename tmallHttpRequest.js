@@ -8,14 +8,15 @@ let connection = mysql.createPool({
         user: "root",
         password: "123456",
         database: "http_request",
-        connectionLimit: "20" //设置连接池的数量
+        connectionLimit: "20"
     }), browser,
     type = 1, //期数
+    addCount = 3, //隔页数 为0则取消隔页翻页
     current = 0,
     query = "柚子",
     // baseUrl = "https://list.tmall.com/search_product.htm",
-    // baseUrl = "https://s.taobao.com/search",
-    baseUrl = "https://search.jd.com/Search",
+    baseUrl = "https://s.taobao.com/search",
+    // baseUrl = "https://search.jd.com/Search",
     url = baseUrl + "?keyword=" + query,
     dataList = [],
     urls = [],
@@ -55,7 +56,8 @@ let selector = {
             item: "li:not(.tb-out-of-stock)",
             details: ".attributes-list li"
         },
-        nextUrl: ".item.next"
+        nextUrl: ".item.next",
+        pageInput: ".J_Input[type=number]"
     },
     tmall: {
         search: "input#mq",
@@ -87,7 +89,8 @@ let selector = {
             item: "li:not(.tb-out-of-stock)",
             details: "#J_AttrUL li"
         },
-        nextUrl: "a.ui-page-next"
+        nextUrl: "a.ui-page-next",
+        pageInput: ".ui-page-skipTo"
     },
     jd: {
         search: "input#key",
@@ -119,7 +122,8 @@ let selector = {
             item: ".item",
             details: ".p-parameter-list li"
         },
-        nextUrl: "a.pn-next"
+        nextUrl: "a.pn-next",
+        pageInput: ".p-skip input"
     }
 }
 let currentSelector
@@ -186,8 +190,6 @@ async function request(url, first, test) {
     const $loginButton = await page.$('.password-login');
     if ($username) {
         let moveCount = 0
-
-
         console.log("需要登录");
         await $username.type("13520944872");
         await $password.type("sr20000923++");
@@ -306,8 +308,26 @@ async function request(url, first, test) {
             current++
         }
         let next = await page.$(currentSelector.nextUrl)
+        let pageInput = await page.$(currentSelector.pageInput)
+        let pageNumber = await page.$eval(currentSelector.pageInput, element => {
+            return parseInt(element.value)
+        })
         if (next) {
-            await (await page.$(currentSelector.nextUrl)).click()
+            if (addCount) {
+                await pageInput.focus()
+                await page.keyboard.press('Backspace');
+                await page.keyboard.press('Backspace');
+                await page.keyboard.press('Backspace');
+                await page.keyboard.press('Backspace');
+                await page.keyboard.press('Backspace');
+                await page.keyboard.press('Backspace');
+                await page.keyboard.press('Backspace');
+                await pageInput.type((pageNumber + addCount).toString())
+                await page.keyboard.press('Enter')
+                console.log("下一页为", pageNumber + addCount);
+            } else {
+                await (await page.$(currentSelector.nextUrl)).click()
+            }
             await timeout(3000)
             let nextUrl = await page.evaluate(() => {
                 return location.href
@@ -386,15 +406,10 @@ async function requestDetail(url, first) {
             } catch (e) {
             }
         }, 25000)
-
-
         await page.goto("https:" + newUrl, {waitUntil: "domcontentloaded"});
-
-
         await timeout("random");
         try {
             page.evaluate(() => {
-
                 let totalHeight = 0;
                 timer = setInterval(() => {
                     let scrollHeight = 600 || document.body.scrollHeight;
@@ -930,10 +945,10 @@ function getKey(url) {
     if (platform === "京东") {
         return parseInt(url.split(".com/")[1].split(".")[0])
     } else {
-        let key = url.split(".com/")[1].split("&")
+        let key = url.split("?")[1].split("&")
         for (let i = 0; i < key.length; i++) {
             if (key[i].indexOf("id=") !== -1) {
-                return parseInt(key[i].replace("id="))
+                return parseInt(key[i].replace("id=", ""))
             }
         }
     }
