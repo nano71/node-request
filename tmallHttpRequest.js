@@ -268,7 +268,7 @@ async function request(url, first, test) {
                 element => {
                     return element.innerText
                 })
-            await exists(title.replaceAll("/", "-"))
+            await exists(getKey(urls[item - 1]))
             if (length === 0) {
                 console.log(current, item);
                 selectPlatform(urls[item - 1])
@@ -753,12 +753,17 @@ function randomSort(arr, newArr) {
     randomSort(arr, newArr);
 }
 
-async function exists(title) {
-    console.log(title);
+async function exists(id) {
+    console.log(id);
+    let d = new Date()
+    let m = d.getMonth() + 1
+    if (m < 10) {
+        m = "0" + m
+    }
     return new Promise(resolve => {
         connection.query(
-            "select * from tmall where title = ? and type = ?",
-            [title, type],
+            "select * from tmall where uniqueID = ? and type = ?",
+            [id, d.getFullYear() + "-" + m + "-0" + type],
             async (err, result) => {
                 length = result.length
                 resolve();
@@ -782,7 +787,6 @@ async function insert({
                           sales
                       }) {
     return new Promise(async (resolve, reject) => {
-            await exists(title)
             let d = new Date()
             let m = d.getMonth() + 1
             if (m < 10) {
