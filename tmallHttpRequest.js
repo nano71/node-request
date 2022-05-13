@@ -712,8 +712,11 @@ async function requestDetail(url, first) {
             } else {
                 smallPlatform = "error"
             }
+            if (!fs.existsSync("./images")) {//加载完毕保存图片
+                fs.mkdirSync("./images");
+            }
             let cacheName = smallPlatform + d.getFullYear() + "" + m + "0" + type
-            folderName = "./柚子/" + cacheName + data.uniqueID
+            folderName = "./images/" + cacheName + data.uniqueID
             if (!fs.existsSync(folderName)) {//加载完毕保存图片
                 fs.mkdirSync(folderName);
             }
