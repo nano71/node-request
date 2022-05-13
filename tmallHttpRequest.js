@@ -14,8 +14,8 @@ let connection = mysql.createPool({
     current = 0,
     query = "柚子",
     // baseUrl = "https://list.tmall.com/search_product.htm",
-    baseUrl = "https://s.taobao.com/search",
-    // baseUrl = "https://search.jd.com/Search",
+    // baseUrl = "https://s.taobao.com/search",
+    baseUrl = "https://search.jd.com/Search",
     url = baseUrl + "?keyword=" + query,
     dataList = [],
     urls = [],
@@ -165,6 +165,8 @@ async function request(url, first, test) {
     await page.waitForSelector(currentSelector.search)
     if (first) {
         await page.focus(currentSelector.search);
+        await page.keyboard.press('Backspace');
+        await page.keyboard.press('Backspace');
         await page.keyboard.type(query, {delay: 100});
         await page.keyboard.press('Enter');
         await page.waitForNavigation()
