@@ -351,6 +351,7 @@ async function requestDetail(url, first) {
         newUrl = newUrl.replaceAll("https:", "").replaceAll("http:", "");
 
         let data = {
+            uniqueID: getKey(url),
             keyword: query,
             title: "",
             time: `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()} ${date.getHours()}:${date.getMinutes()}:00`,
@@ -766,6 +767,7 @@ async function exists(title) {
 }
 
 async function insert({
+                          uniqueID,
                           keyword,
                           title,
                           time,
@@ -789,7 +791,8 @@ async function insert({
             if (length === 0) {
                 console.log("开始添加");
                 await connection.query(
-                    `INSERT INTO tmall (type,
+                    `INSERT INTO tmall (uniqueID,
+                                        type,
                                         keyword,
                                         title,
                                         time,
@@ -802,7 +805,8 @@ async function insert({
                                         variety,
                                         specifications,
                                         sales)
-                     VALUES ('${d.getFullYear() + "-" + m + "-0" + type}',
+                     VALUES ('${uniqueID}',
+                             '${d.getFullYear() + "-" + m + "-0" + type}',
                              '${keyword}',
                              '${title}',
                              '${time}',
@@ -896,6 +900,19 @@ function selectPlatform(url) {
     } else if (url.indexOf("jd.com") !== -1) {
         currentSelector = selector.jd
         platform = "京东"
+    }
+}
+
+function getKey(url) {
+    if (platform === "京东") {
+        return parseInt(url.split(".com/")[1].split(".")[0])
+    } else {
+        let key = url.split(".com/")[1].split("&")
+        for (let i = 0; i < key.length; i++) {
+            if (key[i].indexOf("id=") !== -1) {
+                return parseInt(key[i].replace("id="))
+            }
+        }
     }
 }
 

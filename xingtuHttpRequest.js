@@ -81,18 +81,9 @@ async function init(url, first,) {
     await page.mainFrame().addScriptTag({
         url: 'https://cdn.bootcss.com/jquery/3.2.0/jquery.min.js'
     })
-    await timeout(5000)
-    await page.evaluate((selector, selector2) => {
-        window.$(selector).last().click()
-        return null
-    }, $.rankName)
-    console.log("选择器已经点击");
-    try {
-        await timeout(3000)
-        console.log("继续");
-    } catch (e) {
-        console.log(e);
-    }
+
+    await timeout(3000)
+
     await page.evaluate(() => {
         window.$("li > div:contains('头条')").remove()
         window.$("li > div:contains('西瓜')").remove()
@@ -100,9 +91,9 @@ async function init(url, first,) {
     })
     await timeout(2000)
     let listItems = await page.$$("ul ul ul li")
-    for (let i = 0; i < listItems.length; i++) {
+    for (let i = 6; i < listItems.length; i++) {
         console.log("榜单", i);
-        await listItems[i].click()
+        await await page.$$("ul ul ul li")[i].click()
         await timeout(5000)
         let rankData = await page.evaluate((selector) => {
             let list = []
