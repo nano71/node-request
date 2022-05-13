@@ -781,10 +781,16 @@ async function insert({
                       }) {
     return new Promise(async (resolve, reject) => {
             await exists(title)
+            let d = new Date()
+            let m = d.getMonth() + 1
+            if (m < 10) {
+                m = "0" + m
+            }
             if (length === 0) {
                 console.log("开始添加");
                 await connection.query(
-                    `INSERT INTO tmall (keyword,
+                    `INSERT INTO tmall (type,
+                                        keyword,
                                         title,
                                         time,
                                         platform,
@@ -796,7 +802,8 @@ async function insert({
                                         variety,
                                         specifications,
                                         sales)
-                     VALUES ('${keyword}',
+                     VALUES ('${d.getFullYear() + "-" + m + "-0" + type}',
+                             '${keyword}',
                              '${title}',
                              '${time}',
                              '${platform}',
