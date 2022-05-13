@@ -310,15 +310,13 @@ async function request(url, first, test) {
         let next = await page.$(currentSelector.nextUrl)
         let pageInput = await page.$(currentSelector.pageInput)
         let pageNumber = await page.$eval(currentSelector.pageInput, element => {
-            return parseInt(element.value)
+            let number = parseInt(element.value)
+            element.value = ''
+            return number
         })
         if (next) {
             if (addCount) {
                 await pageInput.focus()
-                await page.keyboard.press('Backspace');
-                await page.keyboard.press('Backspace');
-                await page.keyboard.press('Backspace');
-                await page.keyboard.press('Backspace');
                 await page.keyboard.press('Backspace');
                 await page.keyboard.press('Backspace');
                 await page.keyboard.press('Backspace');
