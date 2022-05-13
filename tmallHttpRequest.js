@@ -697,7 +697,23 @@ async function requestDetail(url, first) {
             }
             data.title = title;
             console.log("获取完成,正在保存图片");
-            folderName = "./柚子/" + title || "错误" + "/"
+            let d = new Date()
+            let m = d.getMonth() + 1
+            if (m < 10) {
+                m = "0" + m
+            }
+            let smallPlatform
+            if (platform === "京东") {
+                smallPlatform = "jd"
+            } else if (platform === "天猫") {
+                smallPlatform = "tm"
+            } else if (platform === "淘宝") {
+                smallPlatform = "tb"
+            } else {
+                smallPlatform = "error"
+            }
+            let cacheName = smallPlatform + d.getFullYear() + "" + m + "0" + type
+            folderName = "./柚子/" + cacheName + data.uniqueID
             if (!fs.existsSync(folderName)) {//加载完毕保存图片
                 fs.mkdirSync(folderName);
             }
@@ -763,7 +779,7 @@ async function exists(id) {
     return new Promise(resolve => {
         connection.query(
             "select * from tmall where uniqueID = ? and type = ?",
-            [id, d.getFullYear() + "-" + m + "-0" + type],
+            [id, d.getFullYear() + "" + m + "0" + type],
             async (err, result) => {
                 length = result.length
                 resolve();
@@ -810,7 +826,7 @@ async function insert({
                                         specifications,
                                         sales)
                      VALUES ('${uniqueID}',
-                             '${d.getFullYear() + "-" + m + "-0" + type}',
+                             '${d.getFullYear() + "" + m + "0" + type}',
                              '${keyword}',
                              '${title}',
                              '${time}',
