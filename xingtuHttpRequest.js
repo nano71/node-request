@@ -82,21 +82,17 @@ async function init(url, first, exports) {
         await page.mainFrame().addScriptTag({
             url: 'https://cdn.bootcss.com/jquery/3.2.0/jquery.min.js'
         })
+        console.log("等待出现");
         await page.waitForSelector($.checkBoxListItem)
 
         let max = await page.$eval("ul.el-pager li.number:last-child", (element) => {
             return parseInt(element.innerText)
         })
-        let star = 51
+        let star = 350
         if (star) {
             await page.focus($.pageInput);
-            await page.keyboard.press('Backspace');
-            await page.keyboard.press('Backspace');
-            await page.keyboard.press('Backspace');
-            await page.keyboard.press('Backspace');
-            await page.keyboard.press('Backspace');
-            await page.keyboard.press('Backspace');
-            await page.keyboard.press('Backspace');
+            await page.keyboard.press('ControlLeft');
+            await page.keyboard.press('A');
             await page.keyboard.press('Backspace');
             await (await page.$($.pageInput)).type((star + 1).toString())
             await page.keyboard.press('Enter')
