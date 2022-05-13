@@ -10,6 +10,7 @@ let connection = mysql.createPool({
         database: "http_request",
         connectionLimit: "20" //设置连接池的数量
     }), browser,
+    type = 1, //期数
     current = 0,
     query = "柚子",
     // baseUrl = "https://list.tmall.com/search_product.htm",
@@ -753,8 +754,8 @@ async function exists(title) {
     console.log(title);
     return new Promise(resolve => {
         connection.query(
-            "select * from tmall where title = ?",
-            [title],
+            "select * from tmall where title = ? and type = ?",
+            [title, type],
             async (err, result) => {
                 length = result.length
                 resolve();
