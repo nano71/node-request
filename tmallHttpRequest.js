@@ -1,6 +1,9 @@
 const puppeteer = require('puppeteer');
 const fs = require('fs');
-
+const readline = require('readline').createInterface({
+    input: process.stdin,
+    output: process.stdout
+})
 const mysql = require("mysql");
 let connection = mysql.createPool({
         host: "localhost",
@@ -11,12 +14,14 @@ let connection = mysql.createPool({
         connectionLimit: "20"
     }), browser,
     type = 1, //期数
-    addCount = 3, //隔页数 为0则取消隔页翻页
+    addCount = 0, //隔页数 为0则取消隔页翻页
     current = 0,
+    profileID = "",
     query = "柚子",
     // baseUrl = "https://list.tmall.com/search_product.htm",
-    baseUrl = "https://s.taobao.com/search",
-    // baseUrl = "https://search.jd.com/Search",
+    // baseUrl = "https://s.taobao.com/search",
+    baseUrl = "https://search.jd.com/Search",
+    baseUrls = ["https://s.taobao.com/search?keyword=" + query, "https://search.jd.com/Search?keyword=" + query],
     url = baseUrl + "?keyword=" + query,
     dataList = [],
     urls = [],
@@ -128,16 +133,16 @@ let selector = {
 }
 let currentSelector
 
-selectPlatform(baseUrl)
 
-async function request(url, first, test) {
+async function request(urls, first, test) {
     if (first) {
         console.log("开始");
         await puppeteer.launch({
             ignoreHTTPSErrors: true,
             headless: false,
-            userDataDir: 'test-profile-dir',
-            devtools: true,
+            userDataDir: "test-profile-dir" + profileID,
+            devtools: false,
+            dumpio: true,
             args: [
                 "--no-sandbox",
                 "--disable-setuid-sandbox",
@@ -154,6 +159,11 @@ async function request(url, first, test) {
     console.log("puppeteer已注册");
     browser = await puppeteer.connect({browserWSEndpoint});
     console.log("浏览器已连接");
+    await thread(url, first, test)
+
+}
+
+async function thread(url, first, test) {
     const page = await browser.newPage();
     await page.evaluate(async () => {
         Object.defineProperty(navigator, 'webdriver', {get: () => false})
@@ -279,7 +289,7 @@ async function request(url, first, test) {
                 } else {
                     await requestDetail(urls[item - 1], true)
                 }
-                selectPlatform(baseUrl)
+                selectPlatform(url)
                 try {
                     console.log("face图url提取中");
                     let src = await page.$eval(
@@ -342,8 +352,8 @@ async function request(url, first, test) {
         await page.close()
         return request(url, false)
     }
-}
 
+}
 
 async function timeout(type, log) {
     return new Promise(resolve => {
@@ -952,4 +962,43 @@ function getKey(url) {
     }
 }
 
-request(url, true, false).then(r => console.log("结束"));
+
+readline.question("淘宝/京东:[int]", (number) => {
+    if (!parseInt(number)) {
+        console.log(number, "淘宝")
+        url = baseUrls[0]
+    } else {
+        console.log(number, "京东")
+        url = baseUrls[1]
+    }
+    initNext(1)
+})
+
+function initNext(type) {
+    switch (type) {
+        case 1:
+            return readline.question("并发ID:[int]", (number) => {
+                if (parseInt(number) === 0) {
+                    console.log(number, "并发ID")
+                } else {
+                    console.log(number, "并发ID")
+                    profileID = number
+                }
+                initNext(2)
+            })
+        case 2:
+            return readline.question("跳页:[int]", (number) => {
+                addCount = parseInt(number)
+                console.log(number, "页")
+                readline.close()
+                initNext(3)
+            })
+        case 3:
+            return request(url, true, false).then(r => console.log("结束"));
+    }
+}
+
+
+
+
+
