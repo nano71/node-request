@@ -134,7 +134,7 @@ let selector = {
 let currentSelector
 
 
-async function request(urls, first, test) {
+async function request(url, first, test) {
     if (first) {
         console.log("开始");
         await puppeteer.launch({
@@ -159,11 +159,6 @@ async function request(urls, first, test) {
     console.log("puppeteer已注册");
     browser = await puppeteer.connect({browserWSEndpoint});
     console.log("浏览器已连接");
-    await thread(url, first, test)
-
-}
-
-async function thread(url, first, test) {
     const page = await browser.newPage();
     await page.evaluate(async () => {
         Object.defineProperty(navigator, 'webdriver', {get: () => false})
@@ -273,7 +268,7 @@ async function thread(url, first, test) {
         }
         let testUrl = '//detail.tmall.com/item.htm?id=667162749625&skuId=4808601756927&areaId=450400&user_id=4270388526&cat_id=2&is_b=1&rn=accbad07b7a95e83e82018ac340f14f5'
         await timeout("random");
-        for (let item of randomList) {
+        if (false) for (let item of randomList) {
             // let key = dataList.length - 1
             let title = await page.$eval(
                 currentSelector.face.title(item),
@@ -981,15 +976,15 @@ function initNext(type) {
                 if (parseInt(number) === 0) {
                     console.log(number, "并发ID")
                 } else {
-                    console.log(number, "并发ID")
                     profileID = number
+                    console.log(profileID, "并发ID")
                 }
                 initNext(2)
             })
         case 2:
             return readline.question("跳页:[int]", (number) => {
                 addCount = parseInt(number)
-                console.log(number, "页")
+                console.log(addCount, "页")
                 readline.close()
                 initNext(3)
             })
