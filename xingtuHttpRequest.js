@@ -88,7 +88,7 @@ async function init(url, first, exports) {
         let max = await page.$eval("ul.el-pager li.number:last-child", (element) => {
             return parseInt(element.innerText)
         })
-        let star = 350
+        let star = 1100
         if (star) {
             await page.focus($.pageInput);
             await page.keyboard.press('ControlLeft');
@@ -145,7 +145,9 @@ async function init(url, first, exports) {
         let listItems = await page.$$("ul ul ul li")
         for (let i = 6; i < listItems.length; i++) {
             console.log("榜单", i);
-            await await page.$$("ul ul ul li")[i].click()
+            await page.evaluate((i) => {
+                document.querySelectorAll("ul ul ul li")[i].click()
+            }, i)
             await timeout(5000)
             let rankData = await page.evaluate((selector) => {
                 let list = []
@@ -159,19 +161,15 @@ async function init(url, first, exports) {
                         rank: cache[0],
                         name: cache[1].replaceAll("\n", ""),
                         avatar: images[key].getAttribute("src"),
-                        fansCount: cache[2],
-                        rating: cache[3],
-                        type: cache[4],
-                        playNumber: cache[5],
-                        gpm: cache[6]
                     }
-                    list.push(element.classList[0].replaceAll("star-", ""))
+                    // list.push(element.classList[0].replaceAll("star-", ""))
+                    list.push(data)
                 }, $.listItem)
                 return list
             }, $.listItem)
             console.log(rankData);
             for (let i = 0; i < rankData.length; i++) {
-                await nextRequest(rankData[i])
+                await nextRequest(rankData[i].id)
             }
         }
     }
@@ -287,4 +285,4 @@ let selector = {
     pageInput: "input[type='number'].el-input__inner"
 }
 let $ = selector
-init(requestData.url, true, true).then(res => console.log("结束"))
+init(requestData.url, true, false).then(res => console.log("结束"))

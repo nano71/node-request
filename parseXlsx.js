@@ -78,7 +78,6 @@ async function exists(ID) {
 
 async function insert(data) {
     // console.log("'" + row.join("' , '") + "'");
-    console.log(data.url);
     await exists(data.ID)
     if (!length) {
         return new Promise(async (resolve, reject) => {
@@ -106,6 +105,8 @@ async function insert(data) {
                                                          genderDistribution,
                                                          ageDistribution,
                                                          regionalDistribution,
+                                                         activityDistribution,
+                                                         deviceDistribution,
                                                          url)
                                     VALUES ("${data.test}",
                                             "${data.name}",
@@ -130,6 +131,8 @@ async function insert(data) {
                                             "${data.genderDistribution}",
                                             "${data.ageDistribution}",
                                             "${data.regionalDistribution}",
+                                            "${data.activityDistribution}",
+                                            "${data.deviceDistribution}",
                                             "${data.url}");`
                 , (err, result) => {
                     console.log(result);
