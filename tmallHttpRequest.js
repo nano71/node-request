@@ -893,7 +893,13 @@ async function move(box, count, page) {
                             Object.defineProperty(event, 'clientX', {get: () => 260})
                             document.querySelector("#nc_1_n1z").dispatchEvent(event);
                         } catch (e) {
-
+                            let event = document.createEvent('MouseEvents');
+                            event.initEvent('mousedown', true, false);
+                            document.querySelector("#nc_1_n1z").dispatchEvent(event);
+                            event = document.createEvent('MouseEvents');
+                            event.initEvent('mousemove', true, false);
+                            Object.defineProperty(event, 'clientX', {get: () => 260})
+                            document.querySelector("#nc_1_n1z").dispatchEvent(event);
                         }
                     })
                     for (let i = 0; i < 10; i++) {
