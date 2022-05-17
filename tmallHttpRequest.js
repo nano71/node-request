@@ -4,17 +4,10 @@ const readline = require('readline').createInterface({
     input: process.stdin,
     output: process.stdout
 })
-const mysql = require("mysql");
 const {timeout} = require("./timeout");
 const {pageScroll} = require("./pageScroll");
-let connection = mysql.createPool({
-        host: "localhost",
-        port: "3306",
-        user: "root",
-        password: "123456",
-        database: "http_request",
-        connectionLimit: "20"
-    }), browser,
+const {connection} = require("./mysqlConnection");
+let browser,
     type = 1, //期数
     addCount = 0, //隔页数 为0则取消隔页翻页
     current = 0,

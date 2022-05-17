@@ -1,17 +1,9 @@
-const mysql = require("mysql");
 const puppeteer = require("puppeteer");
-const e = require("express");
 const {timeout} = require("./timeout");
 const {pageScroll} = require("./pageScroll");
+const {connection} = require("./mysqlConnection");
 const {toBase64} = require("./base64");
-let connection = mysql.createPool({
-    host: "localhost",
-    port: "3306",
-    user: "root",
-    password: "123456",
-    database: "http_request",
-    connectionLimit: "20",
-})
+
 let list, browser, browserWSEndpoint
 connection.query("select * from starmap where realID is null", [], async (err, result) => {
     if (err) throw err

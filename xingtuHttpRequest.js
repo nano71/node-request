@@ -1,22 +1,13 @@
 const key = require("./keyInfo")
 const fs = require('fs');
-const xlsx = require('node-xlsx')
 const puppeteer = require('puppeteer');
+const {connection} = require("./mysqlConnection");
 let browserWSEndpoint,
     browser,
     requestData = {
         url: "https://www.xingtu.cn/",
     },
     length = 0
-const mysql = require("mysql");
-let connection = mysql.createPool({
-    host: "localhost",
-    port: "3306",
-    user: "root",
-    password: "123456",
-    database: "http_request",
-    connectionLimit: "20" //设置连接池的数量
-})
 let path = "../../downloads/starMap/"
 
 async function timeout(type, log) {
