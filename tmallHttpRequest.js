@@ -174,20 +174,12 @@ async function request(url, first, test) {
     });
     await page.goto(url);
     selectPlatform(url)
-    await page.waitForSelector(currentSelector.search)
-    if (first) {
-        await page.focus(currentSelector.search);
-        await page.keyboard.press('Backspace');
-        await page.keyboard.press('Backspace');
-        await page.keyboard.type(query, {delay: 100});
-        await page.keyboard.press('Enter');
-        await page.waitForNavigation()
-    }
+
 
     let error = await page.$(".warnning-text")
     if (error) {
         await page.evaluate(async () => {
-            Object.defineProperty(navigator, 'webdriver', {get: () => false})
+            Object.defineProperty(navigator, 'webdriver', {get: () => undefined})
         })
         await timeout(10000)
         await page.waitForNavigation()
@@ -195,17 +187,18 @@ async function request(url, first, test) {
 
     const $username = await page.$('#fm-login-id');
     const $password = await page.$('#fm-login-password');
-    const $loginButton = await page.$('.password-login');
+    let $loginButton = await page.$('.password-login');
     if ($username) {
         let moveCount = 0
         console.log("需要登录");
         await $username.type("13520944872");
         await $password.type("sr20000923++");
-        await page.click('body');
-        console.log("等待拖动条");
-
         const $code = await page.$("#baxia-password");
-        if ($code) {
+        await $loginButton.click();
+        console.log("等待拖动条");
+        await timeout(3000)
+        let dialog = await page.$("iframe#baxia-dialog-content")
+        if (dialog) {
             console.log("拖动条存在");
             let dialog = await page.$("iframe#baxia-dialog-content")
             dialog = await dialog.contentFrame()
@@ -222,6 +215,7 @@ async function request(url, first, test) {
         } else {
             console.log("拖动条不存在");
         }
+        $loginButton = await page.$('.password-login');
         await $loginButton.click();
         console.log("正在登录");
         await page.screenshot({
@@ -230,6 +224,15 @@ async function request(url, first, test) {
         console.log("等待结果");
         await page.waitForNavigation();
         console.log("登录完成");
+    }
+    await page.waitForSelector(currentSelector.search)
+    if (first) {
+        await page.focus(currentSelector.search);
+        await page.keyboard.press('Backspace');
+        await page.keyboard.press('Backspace');
+        await page.keyboard.type(query, {delay: 100});
+        await page.keyboard.press('Enter');
+        await page.waitForNavigation()
     }
     console.log("搜索关键字", query);
     await timeout(3000)
@@ -882,6 +885,13 @@ async function move(box, count, page) {
                     await dialog.evaluate(async () => {
                         try {
                             Object.defineProperty(navigator, 'webdriver', {get: () => false})
+                            let event = document.createEvent('MouseEvents');
+                            event.initEvent('mousedown', true, false);
+                            document.querySelector("#nc_1_n1z").dispatchEvent(event);
+                            event = document.createEvent('MouseEvents');
+                            event.initEvent('mousemove', true, false);
+                            Object.defineProperty(event, 'clientX', {get: () => 260})
+                            document.querySelector("#nc_1_n1z").dispatchEvent(event);
                         } catch (e) {
 
                         }
@@ -901,8 +911,7 @@ async function move(box, count, page) {
                     if (count > 2) {
                         count = 0
                         await page.reload({waitUntil: ["networkidle0", "domcontentloaded"]});
-                        await timeout("random");
-                        await timeout("random");
+                        await timeout();
                     }
                 } else {
                     clearInterval(timer3)
@@ -1008,8 +1017,3 @@ function initNext(type) {
             return request(url, true, false).then(r => console.log("结束"));
     }
 }
-
-
-
-
-
