@@ -5,6 +5,8 @@ const readline = require('readline').createInterface({
     output: process.stdout
 })
 const mysql = require("mysql");
+const {timeout} = require("./timeout");
+const {pageScroll} = require("./pageScroll");
 let connection = mysql.createPool({
         host: "localhost",
         port: "3306",
@@ -29,7 +31,7 @@ let connection = mysql.createPool({
     length = 0,
     platform,
     folderName = "";
-
+let pauseTime = 0, pauseTime2 = 0
 let selector = {
     taobao: {
         search: "input.search-combobox-input",
@@ -132,7 +134,7 @@ let selector = {
     }
 }
 let currentSelector
-
+let now = new Date().getTime();
 
 async function request(url, first, test) {
     if (first) {
@@ -148,6 +150,7 @@ async function request(url, first, test) {
                 "--disable-setuid-sandbox",
                 "--disable-web-security",
                 "--disable-features=IsolateOrigins,site-per-process",
+                '--disable-automation'
             ],
         }).then(
             (Browser) => {
@@ -311,6 +314,18 @@ async function request(url, first, test) {
                 dataList.push({title: "已存在"})
             }
             current++
+            if (pauseTime) {
+                let currentTime = new Date().getTime() - now
+                let $m = currentTime / 60000 // 过去了
+                if (pauseTime - $m <= 0) {
+                    console.log("暂停", pauseTime2, "分钟");
+                    await timeout(pauseTime2 * 60000)
+                    now = new Date().getTime();
+                } else {
+                    console.log(pauseTime - $m, "分钟后暂停");
+                }
+            }
+
         }
         let next = await page.$(currentSelector.nextUrl)
         let pageInput = await page.$(currentSelector.pageInput)
@@ -350,18 +365,6 @@ async function request(url, first, test) {
 
 }
 
-async function timeout(type, log) {
-    return new Promise(resolve => {
-        let randomTime = parseInt((Math.random() * 5000).toFixed(0));
-        if (type !== "random") {
-            randomTime = type
-        }
-        if (log === undefined) {
-            console.log(randomTime, "毫秒延迟");
-        }
-        setTimeout(resolve, randomTime)
-    })
-}
 
 async function requestDetail(url, first) {
 
@@ -763,22 +766,6 @@ async function requestDetail(url, first) {
 }
 
 
-function pageScroll(page) {
-    return page.evaluate(() => {
-        return new Promise((resolve, reject) => {
-            let totalHeight = 0;
-            let timer = setInterval(() => {
-                window.scrollBy(0, Math.random() * 100);
-                totalHeight += Math.random() * 100;
-                if (totalHeight >= document.body.scrollHeight) {
-                    clearInterval(timer);
-                    resolve();
-                }
-            }, 100);
-        })
-    });
-}
-
 function randomSort(arr, newArr) {
     if (arr.length === 1) {
         newArr.push(arr[0]);
@@ -791,7 +778,7 @@ function randomSort(arr, newArr) {
 }
 
 async function exists(id) {
-    console.log(id);
+    console.log("ID:", id);
     let d = new Date()
     let m = d.getMonth() + 1
     if (m < 10) {
@@ -878,7 +865,6 @@ async function insert({
 
 async function move(box, count, page) {
     return new Promise(async resolve1 => {
-
         let timer3 = setInterval(async () => {
             try {
                 if (await page.$("iframe#baxia-dialog-content")) {
@@ -959,6 +945,9 @@ function getKey(url) {
 
 
 readline.question("淘宝/京东:[int]", (number) => {
+    if (isNaN(parseInt(number))) {
+        number = 0
+    }
     if (!parseInt(number)) {
         console.log(number, "淘宝")
         url = baseUrls[0]
@@ -973,6 +962,9 @@ function initNext(type) {
     switch (type) {
         case 1:
             return readline.question("并发ID:[int]", (number) => {
+                if (isNaN(parseInt(number))) {
+                    number = 0
+                }
                 if (parseInt(number) === 0) {
                     console.log(number, "并发ID")
                 } else {
@@ -983,12 +975,36 @@ function initNext(type) {
             })
         case 2:
             return readline.question("跳页:[int]", (number) => {
+                if (isNaN(parseInt(number))) {
+                    number = 0
+                }
                 addCount = parseInt(number)
                 console.log(addCount, "页")
-                readline.close()
                 initNext(3)
             })
         case 3:
+            return readline.question("指定分钟后暂停:[int]", (number) => {
+                if (isNaN(parseInt(number))) {
+                    number = 0
+                    initNext(5)
+                } else {
+                    pauseTime = parseInt(number)
+                    console.log(pauseTime, "分")
+                    initNext(4)
+                }
+            })
+        case 4:
+            return readline.question("暂停多久(分钟):[int]", (number) => {
+                if (isNaN(parseInt(number))) {
+                    number = 0
+                }
+                pauseTime2 = parseInt(number)
+                console.log(pauseTime, "分后暂停", pauseTime2, "分钟");
+                initNext(5)
+            })
+        case 5:
+            readline.close()
+            now = new Date().getTime();
             return request(url, true, false).then(r => console.log("结束"));
     }
 }
