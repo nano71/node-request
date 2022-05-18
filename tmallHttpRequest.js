@@ -804,7 +804,8 @@ async function insert({
                           originAddress,
                           variety,
                           specifications,
-                          sales
+                          sales,
+                          face
                       }) {
     return new Promise(async (resolve, reject) => {
             let d = new Date()
@@ -828,7 +829,8 @@ async function insert({
                                         originAddress,
                                         variety,
                                         specifications,
-                                        sales)
+                                        sales,
+                                        face)
                      VALUES ('${uniqueID}',
                              '${d.getFullYear() + "" + m + "0" + type}',
                              '${keyword}',
@@ -842,7 +844,8 @@ async function insert({
                              '${originAddress}',
                              '${variety}',
                              '${JSON.stringify(specifications)}',
-                             '${sales}');`,
+                             '${sales}',
+                             '${face}');`,
                     (err, result) => {
                         if (err) {
                             throw err;
@@ -876,23 +879,22 @@ async function move(box, count, page) {
                     let dialog = await page.$("iframe#baxia-dialog-content")
                     dialog = await dialog.contentFrame()
                     await dialog.evaluate(async () => {
+                        function test(obj) {
+                            if (obj)
+                                Object.defineProperty(navigator, 'webdriver', {get: () => false})
+                            let event = document.createEvent('MouseEvents');
+                            event.initEvent('mousedown', true, false);
+                            document.querySelector("#nc_1_n1z").dispatchEvent(event);
+                            event = document.createEvent('MouseEvents');
+                            event.initEvent('mousemove', true, false);
+                            Object.defineProperty(event, 'clientX', {get: () => 260})
+                            document.querySelector("#nc_1_n1z").dispatchEvent(event);
+                        }
+
                         try {
-                            Object.defineProperty(navigator, 'webdriver', {get: () => false})
-                            let event = document.createEvent('MouseEvents');
-                            event.initEvent('mousedown', true, false);
-                            document.querySelector("#nc_1_n1z").dispatchEvent(event);
-                            event = document.createEvent('MouseEvents');
-                            event.initEvent('mousemove', true, false);
-                            Object.defineProperty(event, 'clientX', {get: () => 260})
-                            document.querySelector("#nc_1_n1z").dispatchEvent(event);
+                            test(true)
                         } catch (e) {
-                            let event = document.createEvent('MouseEvents');
-                            event.initEvent('mousedown', true, false);
-                            document.querySelector("#nc_1_n1z").dispatchEvent(event);
-                            event = document.createEvent('MouseEvents');
-                            event.initEvent('mousemove', true, false);
-                            Object.defineProperty(event, 'clientX', {get: () => 260})
-                            document.querySelector("#nc_1_n1z").dispatchEvent(event);
+                            test()
                         }
                     })
                     for (let i = 0; i < 10; i++) {
