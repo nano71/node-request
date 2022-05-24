@@ -37,6 +37,7 @@ async function init(url, first, exports) {
                 "--disable-web-security",
                 "--disable-features=IsolateOrigins,site-per-process",
             ],
+            ignoreDefaultArgs:['--enable-automation']
         }).then(
             (Browser) => {
                 browserWSEndpoint = Browser.wsEndpoint();

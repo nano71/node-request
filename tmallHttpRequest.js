@@ -145,6 +145,7 @@ async function request(url, first, test) {
                 "--disable-features=IsolateOrigins,site-per-process",
                 '--disable-automation'
             ],
+            ignoreDefaultArgs:['--enable-automation']
         }).then(
             (Browser) => {
                 browserWSEndpoint = Browser.wsEndpoint();
@@ -155,6 +156,7 @@ async function request(url, first, test) {
     console.log("puppeteer已注册");
     browser = await puppeteer.connect({browserWSEndpoint});
     console.log("浏览器已连接");
+    await page.evaluateOnNewDocument(() =>{ Object.defineProperties(navigator,{ webdriver:{ get: () => false } }) })
     const page = await browser.newPage();
     await page.evaluate(async () => {
         Object.defineProperty(navigator, 'webdriver', {get: () => false})
@@ -368,7 +370,6 @@ async function requestDetail(url, first) {
         console.log("requestDetail");
         let newUrl = url;
         let randomTime = parseInt((Math.random() * 10000).toFixed(0));
-
         let date = new Date();
         newUrl = newUrl.replaceAll("https:", "").replaceAll("http:", "");
 
@@ -388,6 +389,7 @@ async function requestDetail(url, first) {
             sales: "",
         };
         const page = await browser.newPage();
+        await page.evaluateOnNewDocument(() =>{ Object.defineProperties(navigator,{ webdriver:{ get: () => false } }) })
         await page.setViewport({
             width: 1600,
             height: 900,

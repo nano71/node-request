@@ -3,7 +3,7 @@ const puppeteer = require('puppeteer');
 const {timeout} = require("./timeout");
 const {parseUrl} = require("./parseUrl");
 const {pageScroll} = require("./pageScroll");
-const {toBase64} = require("./base64");
+const {toBase64, parseBase64} = require("./base64");
 let list,
     browser,
     browserWSEndpoint,
@@ -21,7 +21,7 @@ async function request() {
     await puppeteer.launch({
         ignoreHTTPSErrors: true,
         headless: false,
-        userDataDir: "test-profile-dir4",
+        userDataDir: "test-profile-dir2",
         devtools: false,
         dumpio: true,
         args: ["--no-sandbox",
@@ -29,6 +29,7 @@ async function request() {
             "--disable-web-security",
             "--disable-features=IsolateOrigins,site-per-process",
         ],
+        ignoreDefaultArgs: ['--enable-automation']
     }).then((Browser) => {
         browserWSEndpoint = Browser.wsEndpoint();
         console.log("节点已注册");
@@ -40,12 +41,14 @@ async function request() {
         console.time("timer")
         let id = list[i].realID
         await nextRequest(id, list[i])
-        console.timeEnd()
+        console.timeEnd("timer")
+        await timeout()
+
     }
 }
 
 async function nextRequest(id, info) {
-    console.log(id);
+    // console.log(id);
     let url = baseUrl + id + params, detailUrl
     const page = await browser.newPage();
     await page.setViewport({
@@ -54,40 +57,66 @@ async function nextRequest(id, info) {
         deviceScaleFactor: 1,
     });
 
-    async function getDetailUrl() {
+    // console.log(parseBase64(info.information).toString());
+    console.log("粉丝数:", Math.floor(info.fansCount / 10000), "w");
+
+    async function getDetailUrl(first) {
         return new Promise(async resolve => {
+            if (first) {
+                console.log("抖音号搜索:", id);
+            } else {
+                console.log("昵称搜索:", info.name);
+            }
+            await page.evaluateOnNewDocument(() =>{ Object.defineProperties(navigator,{ webdriver:{ get: () => false } }) })
             await page.goto(url)
             await timeout(3000)
+            await page.waitForSelector("#root")
             let error = await page.$eval("#root", element => {
                 let text = element.innerText
                 return text.indexOf("服务出现异常") !== -1;
             })
             if (error) {
+                console.log("服务出现异常,即将重试");
                 let button = await page.$("button span.btn-title")
+                await timeout()
                 await button.click()
+                await timeout(4000)
             }
-            await timeout(4000)
-            detailUrl = await page.$$eval("li > div > a", (elements, info) => {
+            detailUrl = await page.$$eval("li > div > a", (elements, info, first) => {
+                let list = []
                 for (let i = 0; i < elements.length; i++) {
                     let item = elements[i]
                     let text = item.innerText
-                    let realID = text.indexOf(info.realID) !== -1
-                    let fans = text.indexOf((info.fansCount / 10000).toFixed(1) + "w") !== -1
-                    let name = text.indexOf(info.name) !== -1
-                    if (realID || (name && fans)) {
-                        return item.getAttribute("href")
+                    let fanBefore = text.indexOf("获赞")
+                    if (fanBefore !== -1) {
+                        let realID = text.indexOf(info.realID) !== -1
+                        let fanAfter = text.indexOf("粉丝")
+                        let fansCount = parseInt(text.substring(fanBefore, fanAfter).replace("w", ""))
+                        let fans = Math.floor(info.fansCount / 10000)
+                        fans = (fansCount > fans && fansCount - fans < 10) || (fansCount < fans && fans - fansCount < 10) || fans === fansCount
+                        let name = text.indexOf(info.name) !== -1
+                        if (realID || (name && fans)) {
+                            return item.getAttribute("href")
+                        }
+                        if (fans || name) {
+                            list.push(i)
+                        }
                     }
                 }
-            }, info)
+                if (!first && list.length > 0) {
+                    return elements[list[0]].getAttribute("href")
+                }
+            }, info, first)
             resolve()
         })
     }
 
-    await getDetailUrl()
+    await getDetailUrl(true)
     if (!detailUrl) {
         url = baseUrl + info.name + params
         await getDetailUrl()
         if (!detailUrl) {
+            console.log("不存在,即将跳过");
             await page.close()
             return
         }
@@ -148,8 +177,12 @@ async function nextRequest(id, info) {
         console.log(data);
 
     }
-    console.log(JSON.stringify(videos));
-    videos = toBase64(JSON.stringify(videos))
+    if (videos) {
+        console.log(JSON.stringify(videos));
+        videos = toBase64(JSON.stringify(videos))
+    } else {
+        videos = undefined
+    }
     await connection.query(`UPDATE http_request.starmap t
                           SET t.videos = '${videos}' WHERE t.realID = ${id} ;`.replaceAll(/\n/g, ""),
         [],
