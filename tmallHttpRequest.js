@@ -156,8 +156,10 @@ async function request(url, first, test) {
     console.log("puppeteer已注册");
     browser = await puppeteer.connect({browserWSEndpoint});
     console.log("浏览器已连接");
-    await page.evaluateOnNewDocument(() =>{ Object.defineProperties(navigator,{ webdriver:{ get: () => false } }) })
+
     const page = await browser.newPage();
+    await page.evaluateOnNewDocument(() =>{ Object.defineProperties(navigator,{ webdriver:{ get: _ => false } }) })
+
     await page.evaluate(async () => {
         Object.defineProperty(navigator, 'webdriver', {get: () => false})
     })
