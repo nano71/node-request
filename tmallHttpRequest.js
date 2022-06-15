@@ -7,6 +7,7 @@ const readline = require('readline').createInterface({
 const {timeout} = require("./timeout");
 const {pageScroll} = require("./pageScroll");
 const {connection} = require("./mysqlConnection");
+const useProxy = require("puppeteer-page-proxy");
 let browser,
     type = 1, //期数
     addCount = 0, //隔页数 为0则取消隔页翻页
@@ -16,118 +17,145 @@ let browser,
     // baseUrl = "https://list.tmall.com/search_product.htm",
     // baseUrl = "https://s.taobao.com/search",
     baseUrl = "https://search.jd.com/Search",
-    baseUrls = ["https://s.taobao.com/search?keyword=" + query, "https://search.jd.com/Search?keyword=" + query],
+    baseUrls = ["https://s.taobao.com/search", "https://search.jd.com/Search"],
     url = baseUrl + "?keyword=" + query,
     dataList = [],
     urls = [],
     browserWSEndpoint,
     length = 0,
     platform,
-    folderName = "";
-let pauseTime = 0, pauseTime2 = 0
-let selector = {
-    taobao: {
-        search: "input.search-combobox-input",
-        platform: "taobao",
-        urls: `div.ctx-box.J_MouseEneterLeave.J_IconMoreNew > .title > a`,
-        face: {
-            a(index) {
-                return `#mainsrp-itemlist .items .item:nth-child(${index}) .title > a`
+    folderName = "",
+    now = new Date().getTime(),
+    pauseTime = 0,
+    pauseTime2 = 0,
+    currentSelector
+const selector = {
+        taobao: {
+            search: "input.search-combobox-input",
+            platform: "taobao",
+            urls: `div.ctx-box.J_MouseEneterLeave.J_IconMoreNew > .title > a`,
+            face: {
+                a(index) {
+                    return `#mainsrp-itemlist .items .item:nth-child(${index}) .title > a`
+                },
+                title(index) {
+                    return `#mainsrp-itemlist .items .item:nth-child(${index}) .title > a`
+                },
+                img(index) {
+                    return `#mainsrp-itemlist .items .item:nth-child(${index}) img.J_ItemPic.img`
+                }
             },
-            title(index) {
-                return `#mainsrp-itemlist .items .item:nth-child(${index}) .title > a`
+            detail: {
+                area: ".tb-item-info",
+                title: "#J_Title > h3",
+                shop: "a.shop-name-link",
+                shop2: "#J_ShopInfo > div > div.tb-shop-info-hd > div.tb-shop-name > dl > dd > strong > a",
+                label: "#J_isku dl.J_Prop.tb-prop:nth-child(1) > dt",
+                label2: "#J_isku dl.J_Prop.tb-prop:nth-child(2) > dt",
+                price: ".tb-rmb-num",
+                sales: "#J_SellCounter",
+                selectArea: "dl.J_Prop.tb-prop:nth-child(1)",
+                selectArea2: "dl.J_Prop.tb-prop:nth-child(2)",
+                selected: "li.tb-selected",
+                item: "li:not(.tb-out-of-stock)",
+                details: ".attributes-list li"
             },
-            img(index) {
-                return `#mainsrp-itemlist .items .item:nth-child(${index}) img.J_ItemPic.img`
-            }
+            nextUrl: ".item.next",
+            pageInput: ".J_Input[type=number]"
         },
-        detail: {
-            area: ".tb-item-info",
-            title: "#J_Title > h3",
-            shop: "a.shop-name-link",
-            shop2: "#J_ShopInfo > div > div.tb-shop-info-hd > div.tb-shop-name > dl > dd > strong > a",
-            label: "#J_isku dl.J_Prop.tb-prop:nth-child(1) > dt",
-            label2: "#J_isku dl.J_Prop.tb-prop:nth-child(2) > dt",
-            price: ".tb-rmb-num",
-            sales: "#J_SellCounter",
-            selectArea: "dl.J_Prop.tb-prop:nth-child(1)",
-            selectArea2: "dl.J_Prop.tb-prop:nth-child(2)",
-            selected: "li.tb-selected",
-            item: "li:not(.tb-out-of-stock)",
-            details: ".attributes-list li"
+        tmall: {
+            search: "input#mq",
+            platform: "tmall",
+            urls: `#J_ItemList > div > div > p.productTitle > a`,
+            face: {
+                a(index) {
+                    return `#J_ItemList div.product:nth-child(${index}) p.productTitle a`
+                },
+                title(index) {
+                    return `#J_ItemList div.product:nth-child(${index}) p.productTitle a`
+                },
+                img(index) {
+                    return `#J_ItemList > div:nth-child(${index}) > div > div.productImg-wrap > a > img`
+                }
+            },
+            detail: {
+                area: "#J_DetailMeta",
+                title: "#J_DetailMeta > div.tm-clear > div.tb-property > div > div.tb-detail-hd > h1",
+                shop: "#shopExtra > div.slogo > a > strong",
+                shop2: "#side-shop-info > div > h3 > div > a",
+                label: "#J_DetailMeta .tm-sale-prop > dt.tb-metatit",
+                label2: "#J_DetailMeta .tm-sale-prop:nth-child(2) > dt.tb-metatit",
+                price: "span.tm-price",
+                sales: "span.tm-count",
+                selectArea: "dl.tm-sale-prop:nth-child(1)",
+                selectArea2: "dl.tm-sale-prop:nth-child(2)",
+                selected: "li.tb-selected",
+                item: "li:not(.tb-out-of-stock)",
+                details: "#J_AttrUL li"
+            },
+            nextUrl: "a.ui-page-next",
+            pageInput: ".ui-page-skipTo"
         },
-        nextUrl: ".item.next",
-        pageInput: ".J_Input[type=number]"
+        jd: {
+            search: "input#key",
+            platform: "jd",
+            urls: "#J_goodsList > ul li.gl-item .p-name a",
+            face: {
+                a(index) {
+                    return `#J_goodsList > ul > li:nth-child(${index}) > div > div.p-name > a`
+                },
+                title(index) {
+                    return `#J_goodsList > ul > li:nth-child(${index}) > div > div.p-name > a`
+                },
+                img(index) {
+                    return `#J_goodsList > ul > li:nth-child(${index}) > div > div.p-img > a > img`
+                }
+            },
+            detail: {
+                area: "body > div:nth-child(10) > div",
+                title: "div.sku-name",
+                shop: "#popbox > div > div.mt > h3 > a",
+                shop2: "#crumb-wrap > div > div.contact.fr.clearfix > div.J-hove-wrap.EDropdown.fr > div:nth-child(1) > div > a",
+                label: "#choose-attr-1 > .dt",
+                label2: "#choose-attr-2 > .dt",
+                price: "span.price",
+                sales: "#comment-count > a",
+                selectArea: "#choose-attr-1 > div.dd",
+                selectArea2: "#choose-attr-2 > div.dd",
+                selected: ".item.selected",
+                item: ".item",
+                details: ".p-parameter-list li"
+            },
+            nextUrl: "a.pn-next",
+            pageInput: ".p-skip input"
+        }
     },
-    tmall: {
-        search: "input#mq",
-        platform: "tmall",
-        urls: `#J_ItemList > div > div > p.productTitle > a`,
-        face: {
-            a(index) {
-                return `#J_ItemList div.product:nth-child(${index}) p.productTitle a`
-            },
-            title(index) {
-                return `#J_ItemList div.product:nth-child(${index}) p.productTitle a`
-            },
-            img(index) {
-                return `#J_ItemList > div:nth-child(${index}) > div > div.productImg-wrap > a > img`
-            }
-        },
-        detail: {
-            area: "#J_DetailMeta",
-            title: "#J_DetailMeta > div.tm-clear > div.tb-property > div > div.tb-detail-hd > h1",
-            shop: "#shopExtra > div.slogo > a > strong",
-            shop2: "#side-shop-info > div > h3 > div > a",
-            label: "#J_DetailMeta .tm-sale-prop > dt.tb-metatit",
-            label2: "#J_DetailMeta .tm-sale-prop:nth-child(2) > dt.tb-metatit",
-            price: "span.tm-price",
-            sales: "span.tm-count",
-            selectArea: "dl.tm-sale-prop:nth-child(1)",
-            selectArea2: "dl.tm-sale-prop:nth-child(2)",
-            selected: "li.tb-selected",
-            item: "li:not(.tb-out-of-stock)",
-            details: "#J_AttrUL li"
-        },
-        nextUrl: "a.ui-page-next",
-        pageInput: ".ui-page-skipTo"
-    },
-    jd: {
-        search: "input#key",
-        platform: "jd",
-        urls: "#J_goodsList > ul li.gl-item .p-name a",
-        face: {
-            a(index) {
-                return `#J_goodsList > ul > li:nth-child(${index}) > div > div.p-name > a`
-            },
-            title(index) {
-                return `#J_goodsList > ul > li:nth-child(${index}) > div > div.p-name > a`
-            },
-            img(index) {
-                return `#J_goodsList > ul > li:nth-child(${index}) > div > div.p-img > a > img`
-            }
-        },
-        detail: {
-            area: "body > div:nth-child(10) > div",
-            title: "body > div:nth-child(10) > div > div.itemInfo-wrap > div.sku-name",
-            shop: "#popbox > div > div.mt > h3 > a",
-            shop2: "#crumb-wrap > div > div.contact.fr.clearfix > div.J-hove-wrap.EDropdown.fr > div:nth-child(1) > div > a",
-            label: "#choose-attr-1 > .dt",
-            label2: "#choose-attr-2 > .dt",
-            price: "body > div:nth-child(10) > div > div.itemInfo-wrap > div.summary.summary-first > div > div.summary-price.J-summary-price > div.dd > span.p-price > span.price",
-            sales: "#comment-count > a",
-            selectArea: "#choose-attr-1 > div.dd",
-            selectArea2: "#choose-attr-2 > div.dd",
-            selected: ".item.selected",
-            item: ".item",
-            details: ".p-parameter-list li"
-        },
-        nextUrl: "a.pn-next",
-        pageInput: ".p-skip input"
+    proxy = [
+
+    ]
+
+async function setProxy(page) {
+    if (proxy.length === 0) {
+        return console.log("不设置代理");
     }
+    return new Promise(async resolve => {
+        console.log("设置代理");
+        for (let url of proxy) {
+            await useProxy(page, "http://" + url)
+            try {
+                console.time("proxy", url)
+                console.log("检测代理中");
+                await page.goto("http://ip-api.com/line/?lang=zh-CN", {timeout: 10000});
+                console.log("代理连接成功");
+                console.timeEnd("proxy")
+                return resolve()
+            } catch (e) {
+                console.timeEnd("proxy")
+                console.log("代理连接失败", url);
+            }
+        }
+    })
 }
-let currentSelector
-let now = new Date().getTime();
 
 async function request(url, first, test) {
     if (first) {
@@ -145,7 +173,7 @@ async function request(url, first, test) {
                 "--disable-features=IsolateOrigins,site-per-process",
                 '--disable-automation'
             ],
-            ignoreDefaultArgs:['--enable-automation']
+            ignoreDefaultArgs: ['--enable-automation']
         }).then(
             (Browser) => {
                 browserWSEndpoint = Browser.wsEndpoint();
@@ -156,10 +184,10 @@ async function request(url, first, test) {
     console.log("puppeteer已注册");
     browser = await puppeteer.connect({browserWSEndpoint});
     console.log("浏览器已连接");
-
     const page = await browser.newPage();
-    await page.evaluateOnNewDocument(() =>{ Object.defineProperties(navigator,{ webdriver:{ get: _ => false } }) })
-
+    await page.evaluateOnNewDocument(() => {
+        Object.defineProperties(navigator, {webdriver: {get: _ => false}})
+    })
     await page.evaluate(async () => {
         Object.defineProperty(navigator, 'webdriver', {get: () => false})
     })
@@ -169,16 +197,21 @@ async function request(url, first, test) {
         height: 900,
         deviceScaleFactor: 1,
     });
+    await setProxy(page)
+    console.log("继续", url);
     await page.goto(url);
     selectPlatform(url)
 
 
     let error = await page.$(".warnning-text")
     if (error) {
-        await page.evaluate(async () => {
-            Object.defineProperty(navigator, 'webdriver', {get: () => undefined})
+        await page.evaluate(() => {
+            try {
+                Object.defineProperty(navigator, 'webdriver', {get: () => undefined})
+            } catch (e) {
+
+            }
         })
-        await timeout(10000)
         await page.waitForNavigation()
     }
 
@@ -213,7 +246,10 @@ async function request(url, first, test) {
             console.log("拖动条不存在");
         }
         $loginButton = await page.$('.password-login');
-        await $loginButton.click();
+        try {
+            await $loginButton.click();
+        } catch (e) {
+        }
         console.log("正在登录");
         await page.screenshot({
             path: "./view_login.png"
@@ -308,7 +344,7 @@ async function request(url, first, test) {
                 console.log(dataList[current].specifications[0]);
                 await insert(dataList[current])
                 console.log(current, "完成");
-                await timeout("random");
+                // await timeout(4000);
             } else {
                 console.log("已存在", current);
                 dataList.push({title: "已存在"})
@@ -391,7 +427,9 @@ async function requestDetail(url, first) {
             sales: "",
         };
         const page = await browser.newPage();
-        await page.evaluateOnNewDocument(() =>{ Object.defineProperties(navigator,{ webdriver:{ get: () => false } }) })
+        await page.evaluateOnNewDocument(() => {
+            Object.defineProperties(navigator, {webdriver: {get: () => false}})
+        })
         await page.setViewport({
             width: 1600,
             height: 900,
@@ -511,6 +549,7 @@ async function requestDetail(url, first) {
             try {
                 shop = await page.$(currentSelector.detail.shop)
                 shop2 = await page.$(currentSelector.detail.shop2)
+                await timeout(3000)
                 label = await page.$eval(currentSelector.detail.label, element => element.innerText);
                 try {
                     label2 = await page.$eval(currentSelector.detail.label2, element => element.innerText);
@@ -811,6 +850,9 @@ async function insert({
                           sales,
                           face
                       }) {
+    // if (specifications.length === 0) {
+    //     return console.log("跳过该数据");
+    // }
     return new Promise(async (resolve, reject) => {
             let d = new Date()
             let m = d.getMonth() + 1
