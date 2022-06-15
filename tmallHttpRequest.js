@@ -1,5 +1,6 @@
 const puppeteer = require('puppeteer');
 const fs = require('fs');
+const md5 = require("md5");
 const readline = require('readline').createInterface({
     input: process.stdin,
     output: process.stdout
@@ -198,7 +199,11 @@ async function request(url, first, test) {
     });
     await setProxy(page)
     console.log("继续", url);
-    await page.goto(url);
+    try {
+        await page.goto(url);
+    } catch (e) {
+        await page.reload({waitUntil: ["networkidle0", "domcontentloaded"]});
+    }
     selectPlatform(url)
 
 
@@ -449,7 +454,11 @@ async function requestDetail(url, first) {
             } catch (e) {
             }
         }, 25000)
-        await page.goto("https:" + newUrl, {waitUntil: "domcontentloaded"});
+        try {
+            await page.goto("https:" + newUrl, {waitUntil: "domcontentloaded"});
+        } catch (e) {
+            await page.reload({waitUntil: ["networkidle0", "domcontentloaded"]});
+        }
         await timeout("random");
         try {
             page.evaluate(() => {
@@ -545,14 +554,21 @@ async function requestDetail(url, first) {
             } catch (e) {
                 // console.log(e);
             }
+            let hasLabel = [true, true]
             try {
                 shop = await page.$(currentSelector.detail.shop)
                 shop2 = await page.$(currentSelector.detail.shop2)
                 await timeout(3000)
-                label = await page.$eval(currentSelector.detail.label, element => element.innerText);
+                try {
+                    label = await page.$eval(currentSelector.detail.label, element => element.innerText);
+                } catch (e) {
+                    hasLabel[0] = false
+                    console.log("没有label");
+                }
                 try {
                     label2 = await page.$eval(currentSelector.detail.label2, element => element.innerText);
                 } catch (e) {
+                    hasLabel[1] = false
                     console.log("没有label2");
                 }
                 title = await page.$eval(currentSelector.detail.title, element => element.innerText.replaceAll("/", "-"));
@@ -575,7 +591,6 @@ async function requestDetail(url, first) {
                     try {
                         await page.close();
                     } catch (e) {
-
                     }
                     await requestDetail(url, false);
                     // await timeout(10000000)
@@ -585,9 +600,7 @@ async function requestDetail(url, first) {
                     try {
                         await page.close();
                     } catch (e) {
-
                     }
-
                     resolve()
                     return resolve()
                 }
@@ -629,7 +642,7 @@ async function requestDetail(url, first) {
                 resolve()
                 return
             }
-            if (selectArea) {
+            if (selectArea && (hasLabel[0] === true || hasLabel[1] === true)) {
                 await initSelectArea()
                 console.log("选择区已初始化");
                 let one = await page.$$(currentSelector.detail.selectArea + " " + currentSelector.detail.item)
@@ -715,6 +728,19 @@ async function requestDetail(url, first) {
                     })
                     await timeout(500, true)
 
+                }
+            } else {
+                if (platform === "京东") {
+                    try {
+                        data.specifications = await page.$eval("span.p-price span.price", element => {
+                            return element.innerText
+                        })
+                    } catch (e) {
+                        await page.reload({waitUntil: ["networkidle0", "domcontentloaded"]});
+                        data.specifications = await page.$eval("span.p-price span.price", element => {
+                            return element.innerText
+                        })
+                    }
                 }
             }
             let details = await page.$$eval(
@@ -876,7 +902,8 @@ async function insert({
                                         variety,
                                         specifications,
                                         sales,
-                                        face)
+                                        face,
+                                        md5)
                      VALUES ('${randomID()}',
                              '${uniqueID}',
                              '${d.getFullYear() + "" + m + "0" + type}',
@@ -892,7 +919,8 @@ async function insert({
                              '${variety}',
                              '${JSON.stringify(specifications)}',
                              '${sales}',
-                             '${face}');`,
+                             '${face}',
+                             '${md5(JSON.stringify(specifications))}');`.replaceAll("\n", ""),
                     (err, result) => {
                         if (err) {
                             throw err;
