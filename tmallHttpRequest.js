@@ -8,6 +8,7 @@ const {timeout} = require("./timeout");
 const {pageScroll} = require("./pageScroll");
 const {connection} = require("./mysqlConnection");
 const useProxy = require("puppeteer-page-proxy");
+const {randomID} = require("./randomID");
 let browser,
     type = 1, //期数
     addCount = 0, //隔页数 为0则取消隔页翻页
@@ -130,9 +131,7 @@ const selector = {
             pageInput: ".p-skip input"
         }
     },
-    proxy = [
-
-    ]
+    proxy = []
 
 async function setProxy(page) {
     if (proxy.length === 0) {
@@ -862,7 +861,8 @@ async function insert({
             if (length === 0) {
                 console.log("开始添加");
                 await connection.query(
-                    `INSERT INTO tmall (uniqueID,
+                    `INSERT INTO tmall (id,
+                                        uniqueID,
                                         type,
                                         keyword,
                                         title,
@@ -877,7 +877,8 @@ async function insert({
                                         specifications,
                                         sales,
                                         face)
-                     VALUES ('${uniqueID}',
+                     VALUES ('${randomID()}',
+                             '${uniqueID}',
                              '${d.getFullYear() + "" + m + "0" + type}',
                              '${keyword}',
                              '${title}',
