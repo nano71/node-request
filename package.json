@@ -21,7 +21,7 @@
     "node-fetch": "^3.2.6",
     "node-xlsx": "^0.21.0",
     "pdf-image": "^2.0.0",
-    "puppeteer": "^13.7.0",
+    "puppeteer": "^14.4.0",
     "puppeteer-page-proxy": "^1.2.8",
     "xmldom": "^0.6.0",
     "xpath": "^0.0.32"
