@@ -1,0 +1,40 @@
+### 排行榜  涨粉rank_inc  掉粉rank_dec  点赞rank_digg
+https://dyapi.huitun.com/rank/userScoreRank?from=1&rankType=rank_inc&periodType=day&rdate=06月12日&cid=&follower=&verify=
+Cookie: _ga=GA1.1.1144312456.1655102766; __root_domain_v=.huitun.com; _qddaz=QD.649255102766639; Hm_lvt_51956877b2ac5aabc38d224aa78a05d8=1653549253,1655102872; zy_token=6dcae611-3487-493e-9d02-2ef9f2457d82; SESSION=OWNhYzRkNmUtYzlhNy00OTRiLWExOWQtYzQxODRjMTQ0Njgy; _ga_JBKBWWH0KV=GS1.1.1655109857.2.1.1655110117.0
+
+### 直播商品榜
+https://dyapi.huitun.com/rank/live/goods?rdate=06月12日&periodType=0&category=&subCids=&leafIds=&price=&withAnchor=&anchorFans=&cosRatio=&newGoods=&filterMap=null&sort=sales&from=1
+Cookie: _ga=GA1.1.1144312456.1655102766; __root_domain_v=.huitun.com; _qddaz=QD.649255102766639; Hm_lvt_51956877b2ac5aabc38d224aa78a05d8=1653549253,1655102872; zy_token=6dcae611-3487-493e-9d02-2ef9f2457d82; SESSION=OWNhYzRkNmUtYzlhNy00OTRiLWExOWQtYzQxODRjMTQ0Njgy; _ga_JBKBWWH0KV=GS1.1.1655109857.2.1.1655110117.0
+
+### 详情数据
+https://dyapi.huitun.com/user/detail?uid=104061298629
+Cookie: _ga=GA1.1.1144312456.1655102766; __root_domain_v=.huitun.com; _qddaz=QD.649255102766639; Hm_lvt_51956877b2ac5aabc38d224aa78a05d8=1653549253,1655102872; zy_token=6dcae611-3487-493e-9d02-2ef9f2457d82; SESSION=OWNhYzRkNmUtYzlhNy00OTRiLWExOWQtYzQxODRjMTQ0Njgy; _ga_JBKBWWH0KV=GS1.1.1655109857.2.1.1655110117.0
+
+### 粉丝图表
+https://dyapi.huitun.com/user/fans?uid=3843532448858957
+Cookie: _ga=GA1.1.1144312456.1655102766; __root_domain_v=.huitun.com; _qddaz=QD.649255102766639; Hm_lvt_51956877b2ac5aabc38d224aa78a05d8=1653549253,1655102872; zy_token=6dcae611-3487-493e-9d02-2ef9f2457d82; SESSION=OWNhYzRkNmUtYzlhNy00OTRiLWExOWQtYzQxODRjMTQ0Njgy; _ga_JBKBWWH0KV=GS1.1.1655109857.2.1.1655110117.0
+
+### 达人作品
+https://dyapi.huitun.com/user/awemeList?uid=3843532448858957&from=1&sortField=newest&queryTimeStart=2022-03-16&queryTimeEnd=2022-06-13&maskRemoved=false
+Cookie: _ga=GA1.1.1144312456.1655102766; __root_domain_v=.huitun.com; _qddaz=QD.649255102766639; Hm_lvt_51956877b2ac5aabc38d224aa78a05d8=1653549253,1655102872; zy_token=6dcae611-3487-493e-9d02-2ef9f2457d82; SESSION=OWNhYzRkNmUtYzlhNy00OTRiLWExOWQtYzQxODRjMTQ0Njgy; _ga_JBKBWWH0KV=GS1.1.1655109857.2.1.1655110117.0
+
+### 直播记录
+https://dyapi.huitun.com/live/v2/record?uid=3843532448858957&time=&from=1&mod=DESC&start=2022-03-16&end=2022-06-13
+Cookie: _ga=GA1.1.1144312456.1655102766; __root_domain_v=.huitun.com; _qddaz=QD.649255102766639; Hm_lvt_51956877b2ac5aabc38d224aa78a05d8=1653549253,1655102872; zy_token=6dcae611-3487-493e-9d02-2ef9f2457d82; SESSION=OWNhYzRkNmUtYzlhNy00OTRiLWExOWQtYzQxODRjMTQ0Njgy; _ga_JBKBWWH0KV=GS1.1.1655109857.2.1.1655110117.0
+
+### 直播商品列表
+https://dyapi.huitun.com/live/goods?uid=75321104328&time=&from=1
+Cookie: _ga=GA1.1.1144312456.1655102766; __root_domain_v=.huitun.com; _qddaz=QD.649255102766639; Hm_lvt_51956877b2ac5aabc38d224aa78a05d8=1653549253,1655102872; zy_token=6dcae611-3487-493e-9d02-2ef9f2457d82; SESSION=OWNhYzRkNmUtYzlhNy00OTRiLWExOWQtYzQxODRjMTQ0Njgy; _ga_JBKBWWH0KV=GS1.1.1655109857.2.1.1655110117.0
+
+### 视频商品列表
+https://dyapi.huitun.com/user/awemeGoods?uid=75321104328&brand=&subId=&source=&keyword=&sort=&mod=&filterMap={}&queryTime=&from=1
+Cookie: _ga=GA1.1.1144312456.1655102766; __root_domain_v=.huitun.com; _qddaz=QD.649255102766639; Hm_lvt_51956877b2ac5aabc38d224aa78a05d8=1653549253,1655102872; zy_token=6dcae611-3487-493e-9d02-2ef9f2457d82; SESSION=OWNhYzRkNmUtYzlhNy00OTRiLWExOWQtYzQxODRjMTQ0Njgy; _ga_JBKBWWH0KV=GS1.1.1655109857.2.1.1655110117.0
+
+### 抖音商品榜
+https://dyapi.huitun.com/rank/v2/dyGoods?_t=16551102171261&rdate=06%E6%9C%8811%E6%97%A5&periodType=day&cid0=&cid1=&cid2=&cid3=&cid4=&choice=&source=&price=&sort=&from=1
+Cookie: _ga=GA1.1.1144312456.1655102766; __root_domain_v=.huitun.com; _qddaz=QD.649255102766639; Hm_lvt_51956877b2ac5aabc38d224aa78a05d8=1653549253,1655102872; zy_token=6dcae611-3487-493e-9d02-2ef9f2457d82; SESSION=OWNhYzRkNmUtYzlhNy00OTRiLWExOWQtYzQxODRjMTQ0Njgy; _ga_JBKBWWH0KV=GS1.1.1655109857.2.1.1655110117.0
+
+### 店铺排行榜
+https://dyapi.huitun.com/rank/v2/shop?from=1&rdate=06%E6%9C%8811%E6%97%A5&cate=&sort=&tag=&periodType=day
+Cookie: _ga=GA1.1.1144312456.1655102766; __root_domain_v=.huitun.com; _qddaz=QD.649255102766639; Hm_lvt_51956877b2ac5aabc38d224aa78a05d8=1653549253,1655102872; zy_token=6dcae611-3487-493e-9d02-2ef9f2457d82; SESSION=OWNhYzRkNmUtYzlhNy00OTRiLWExOWQtYzQxODRjMTQ0Njgy; _ga_JBKBWWH0KV=GS1.1.1655109857.2.1.1655110117.0
+

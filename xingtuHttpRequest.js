@@ -135,7 +135,7 @@ async function init(url, first, exports) {
         })
         await timeout(2000)
         let listItems = await page.$$("ul ul ul li")
-        for (let i = 6; i < listItems.length; i++) {
+        for (let i = 0; i < listItems.length; i++) {
             console.log("榜单", i);
             await page.evaluate((i) => {
                 document.querySelectorAll("ul ul ul li")[i].click()

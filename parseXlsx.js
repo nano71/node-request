@@ -61,6 +61,26 @@ async function parseXlsx() {
     })
 }
 
+async function parseXlsx2() {
+    let sheetList = xlsx.parse("./121.xlsx");
+    let excelData = [{data: []}]
+    console.log(sheetList.length);
+    for (const sheet of sheetList) {
+
+        for (let i = 0; i < sheet.data.length; i++) {
+            let row = sheet.data[i]
+            row.length && excelData[0].data.push(row)
+        }
+    }
+    let buffer = xlsx.build(excelData);
+    //写入数据
+    fs.writeFile("./122.xlsx", buffer, function (err) {
+        if (err) {
+            throw err;
+        }
+    })
+}
+
 let length = 0
 
 async function exists(ID) {

@@ -10,15 +10,18 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "axios": "^0.27.2",
     "bufferhelper": "^0.2.1",
     "cheerio": "^1.0.0-rc.10",
     "express": "^4.18.1",
     "hotnode": "^0.0.8",
     "iconv-lite": "^0.6.3",
     "mysql": "^2.18.1",
+    "node-fetch": "^3.2.6",
     "node-xlsx": "^0.21.0",
     "pdf-image": "^2.0.0",
     "puppeteer": "^13.7.0",
+    "puppeteer-page-proxy": "^1.2.8",
     "xmldom": "^0.6.0",
     "xpath": "^0.0.32"
   }
