@@ -14,6 +14,7 @@ const selector = {
                 return `#mainsrp-itemlist .items .item:nth-child(${index}) img.J_ItemPic.img`
             }
         },
+        name: ".title .J_ClickStat",
         detail: {
             area: ".tb-item-info",
             title: "#J_Title > h3",
@@ -81,6 +82,7 @@ const selector = {
                 return `#J_goodsList > ul > li:nth-child(${index}) > div > div.p-img > a > img`
             }
         },
+        name: ".p-name em",
         detail: {
             area: "body > div:nth-child(10) > div",
             title: "div.sku-name",
@@ -135,7 +137,8 @@ let browser,
     pauseTime = 0,
     pauseTime2 = 0,
     currentSelector,
-    proxy = []
+    proxy = [],
+    noHasKewWord = ["柚子茶", "酱", "叶", "饮料"]
 
 async function setProxy(page) {
     if (proxy.length === 0) {
@@ -284,7 +287,7 @@ async function request(url, first, test) {
         await page.waitForNavigation()
     }
     console.log("搜索关键字", query);
-    await page.$eval(currentSelector.sort,element => {
+    await page.$eval(currentSelector.sort, element => {
         element.click()
     })
     await timeout(3000)
@@ -309,12 +312,25 @@ async function request(url, first, test) {
     console.log(urls.length, "条数据");
     if (urls.length) {
         for (let i = 1; i <= urls.length; i++) {
-            numberList.push(i)
+            let title = await page.$$eval(currentSelector.name, (elements, i) => {
+                return elements[i].innerText
+            }, i)
+
+            for (let word of noHasKewWord) {
+                if (title.includes(word)) {
+                    console.log("跳过", title);
+                    break
+                }
+                if (noHasKewWord.at(-1) === word) {
+                    numberList.push(i)
+                }
+            }
         }
         let randomList = [];
         randomSort(numberList, randomList);
         console.log("randomList", randomList);
         console.log("urls", urls);
+        console.log("urls", randomList.length);
         console.log("页面滚动中");
         !test && await pageScroll(page);
         try {
@@ -590,9 +606,7 @@ async function requestDetail(url, first) {
                     hasLabel[1] = false
                     console.log("没有label2");
                 }
-                title =
-
-                    await page.$eval(currentSelector.detail.title, element => element.innerText.replaceAll("/", "-"));
+                title = await page.$eval(currentSelector.detail.title, element => element.innerText.replaceAll("/", "-"));
                 if (shop) {
                     data.shop = await page.$eval(currentSelector.detail.shop, element => element.innerText)
                 } else if (shop2) {
