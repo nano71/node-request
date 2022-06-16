@@ -90,7 +90,7 @@ const selector = {
             shop2: "#crumb-wrap > div > div.contact.fr.clearfix > div.J-hove-wrap.EDropdown.fr > div:nth-child(1) > div > a",
             label: "#choose-attr-1 > .dt",
             label2: "#choose-attr-2 > .dt",
-            price: "span.price",
+            price: "span.p-price > span.price",
             sales: "#comment-count > a",
             selectArea: "#choose-attr-1 > div.dd",
             selectArea2: "#choose-attr-2 > div.dd",
