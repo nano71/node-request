@@ -80,9 +80,14 @@ let request = {
                         md5: null
                     }
                     await timeout(5000)
+                    let count = 1
                     let getTaobaoDetail = async _ => await this.getTaobaoDetail(data).then(async res => {
-                        res || (console.log("出错,即将重试", data.uniqueID), await timeout(2000), await getTaobaoDetail())
-                        res && await this.insert(res)
+                        if (count <= 3) {
+                            res || (console.log("出错,即将重试,重试次数" + count, data.uniqueID), count++, await timeout(2000), await getTaobaoDetail())
+                            res && await this.insert(res)
+                        } else {
+                            console.log("失败3次,跳过");
+                        }
                     })
                     try {
                         await getTaobaoDetail()

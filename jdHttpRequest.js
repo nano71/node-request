@@ -227,7 +227,7 @@ let request = {
                     console.log(data);
                 }
                 data.title = detail["skuName"]
-                data.sales = detail["CommentsCount"][0]["CommentCountStr"]
+                data.sales = detail["CommentsCount"][0]?.["CommentCountStr"]
                 data.face = detail["image"]
                 if (item["expandAttrDesc"]) {
                     let cache = this.getVariety(item["expandAttrDesc"])
