@@ -256,7 +256,7 @@ let request = {
                              '${title}',
                              '${time}',
                              '${platform}',
-                             '${"https:" + url}',
+                             '${"https://" + url.replaceAll("http://", "").replaceAll("https://", "").replaceAll("//", "https://")}',
                              '${shop}',
                              '${originCountry}',
                              '${originProvince}',
@@ -264,7 +264,7 @@ let request = {
                              '${variety}',
                              '${specifications}',
                              '${sales}',
-                             '${"https:" + face}',
+                             '${"https://" + face.replaceAll("http://", "").replaceAll("https://", "").replaceAll("//", "https://")}',
                              '${md5(specifications)}',
                              '${baseInformation}'
                              );`.replaceAll("\n", ""),
@@ -279,4 +279,4 @@ let request = {
     }
 }
 
-request.start(7, 100).then(console.log)
+request.start(1, 100).then(console.log)

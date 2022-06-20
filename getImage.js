@@ -35,7 +35,7 @@ nano71.com = {
                 await timeout(5000)
                 for (const item of this.list[i]) {
                     await this.updateData(item, i, first)
-                    await timeout(2000000)
+                    await timeout(2000)
                     first = false
                 }
             }
@@ -45,10 +45,6 @@ nano71.com = {
     parseSpecifications(data) {
         let cache = [], froms = []
         for (let item of data) {
-            let demoItem = [{
-                "label": "净含量: 2斤; 单果规格: 【大果】单果约250-300g（品质装，人气爆款！）",
-                "price": "23.8"
-            }]
             let cacheObject = {
                 from: item.label.split("; ")[0].split(": ")[0],
                 label: item.label.split("; ")[0].split(": ")[1],
@@ -64,7 +60,7 @@ nano71.com = {
                 price: item.price
             })
         }
-        console.log(cache[0].prices);
+        console.log(cache[0]);
         return cache
     },
     setTaobao(data, first) {
@@ -118,9 +114,12 @@ nano71.com = {
                             node.appendChild(a)
                             elements[1].appendChild(node)
                         }, item2.label)
+                        await this.page.$eval(".tb-rmb-num", (element, number) => {
+                            element.innerText = number
+                        }, (max * 1.5).toFixed(2) + "-" + (min * 1.5).toFixed(2))
                         await this.page.$eval("#J_PromoPriceNum", (element, number) => {
                             element.innerText = number
-                        }, min + "-" + max)
+                        }, max + "-" + min)
                     }
                 }
                 resolve()
