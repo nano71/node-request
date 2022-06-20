@@ -75,7 +75,7 @@ let request = {
                         originAddress: "",
                         variety: this.getVariety(),
                         specifications: [],
-                        sales: item["realSales"]?.replace("人累计付款", ""),
+                        sales: item["realSales"]?.replace("人累计付款", "").replace("人收货",""),
                         face: item["pic_path"],
                         md5: null
                     }

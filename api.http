@@ -53,3 +53,5 @@ http://162.14.108.171:10006/jd.search?q=%E6%9F%9A%E5%AD%90&page=1&token=bba23004
 
 ### 京东详情
 http://162.14.108.171:10006/jd.get.item?itemid=10045547780267&token=bba230047f08154bbecb5a066b0228f3
+###
+http://tkapi.natapp1.cc/jd.get.item?itemid=10045547780267&token=bba230047f08154bbecb5a066b0228f3

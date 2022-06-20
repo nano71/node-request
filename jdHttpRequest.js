@@ -10,7 +10,7 @@ const type = 1
 let request = {
     browser: null,
     browserWSEndpoint: null,
-    baseUrl: "http://162.14.108.171:10006",
+    baseUrl: "http://tkapi.natapp1.cc",
     async start(start = 1, max) {
         for (let i = start; i < max; i++) {
             await request.get(i)
