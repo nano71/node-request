@@ -245,6 +245,9 @@ let request = {
                 data.specifications = this.parseSpecifications(detail)
                 console.log(data.specifications);
                 return resolve(data)
+            }).catch(e => {
+                console.log(e);
+                return resolve(false)
             })
         })
     },

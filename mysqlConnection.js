@@ -1,7 +1,7 @@
 const mysql = require("mysql");
 const {getType} = require("./getType");
 module.exports.connection = mysql.createPool({
-    host: "localhost",
+    host: "192.168.101.161",
     port: "3306",
     user: "root",
     password: "123456",
