@@ -96,6 +96,7 @@ let request = {
         await page.keyboard.type("柚子", {delay: 100});
         await page.keyboard.press('Enter');
         await page.waitForNavigation()
+        await page.$("f-sort a:nth-child(2)").click()
         let urls = await page.$$eval(
             selector.jd.urls,
             element => {
@@ -153,7 +154,7 @@ let request = {
                baseInformation
            }) {
         if (!specifications) {
-            return console.log("无价格表,跳过")
+            return console.log("无价格表,跳过", uniqueID)
         }
         return new Promise(async (resolve) => {
             console.log("开始添加");
@@ -184,7 +185,7 @@ let request = {
                              '${title}',
                              '${time}',
                              '${platform}',
-                             '${"https:"+url}',
+                             '${"https:" + url}',
                              '${shop}',
                              '${originCountry}',
                              '${originProvince}',
@@ -192,7 +193,7 @@ let request = {
                              '${variety}',
                              '${specifications}',
                              '${sales}',
-                             '${"https:"+face}',
+                             '${"https:" + face}',
                              '${md5(specifications || "1")}',
                              '${baseInformation || ""}'
                              );`.replaceAll("\n", ""),
