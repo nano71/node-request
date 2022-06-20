@@ -50,7 +50,7 @@ nano71.com = {
                 for (let img of images) {
                     img.src = ""
                 }
-                let rows = document.querySelectorAll(".J_TSaleProp.tb-clearfix")
+                let rows = _ => document.querySelectorAll(".J_TSaleProp.tb-clearfix")
                 if (first) {
                     document.querySelector(".tb-gallery video").src = ""
                     document.querySelector("#J-From").remove()

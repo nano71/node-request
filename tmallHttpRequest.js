@@ -1,4 +1,3 @@
-
 const puppeteer = require('puppeteer');
 const fs = require('fs');
 const md5 = require("md5");
@@ -46,7 +45,7 @@ let browser,
             filter: {province: '湖南省', city: '株洲市', carrier: '电信'}
         }
     ],
-    noHasKewWord = ["柚子茶", "酱", "叶", "饮料"]
+    noHasKewWord = ["柚子茶", "酱", "叶", "饮料", "柚子皮"]
 
 
 async function request(url, first, test) {
@@ -578,7 +577,7 @@ async function requestDetail(url, first) {
                     await initSelectArea()
                     console.log("选择区已初始化");
                     let labelText
-                    let prices = []
+                    let prices = ""
                     try {
                         labelText = await page.$eval(
                             currentSelector.detail.selectArea,
@@ -608,6 +607,10 @@ async function requestDetail(url, first) {
                             return elements[elements.length - 1].innerText
                         })
                         title = title.replace(/\\n/g, "").replaceAll(labelText, "")
+                        data.specifications.push({
+                            label: `${label}: ${labelText}`,
+                            price: prices
+                        })
                     }
                     for (let j = 0; j < two.length; j++) {
                         try {
@@ -635,9 +638,8 @@ async function requestDetail(url, first) {
                             let price = await page.$$eval(currentSelector.detail.price, elements => {
                                 return elements[elements.length - 1].innerText
                             })
-                            prices.push({
-                                from: label2,
-                                label: text,
+                            data.specifications.push({
+                                label: `${label}: ${labelText}; ${label2}: ${text}`,
                                 price
                             })
                             if (platform === "京东") {
@@ -648,13 +650,7 @@ async function requestDetail(url, first) {
                             console.log(e);
                         }
                     }
-                    data.specifications.push({
-                        from: label,
-                        label: labelText,
-                        prices
-                    })
                     await timeout(500, true)
-
                 }
             } else {
                 if (platform === "京东") {

@@ -156,8 +156,7 @@ let request = {
             if (data["skuCore"]["sku2info"]["0"]) {
                 console.log(realData);
                 return JSON.stringify([{
-                    "from": realData["skuBarVO"]["skuText"],
-                    "label": realData["titleVO"]["title"],
+                    "label": realData["skuBarVO"]["skuText"] + ": " + realData["titleVO"]["title"],
                     "price": data["skuCore"]["sku2info"]["0"]["price"]["priceText"]
                 }])
             } else {
@@ -184,14 +183,13 @@ let request = {
                     for (let item of cacheSkus) {
                         let path = item.propPath.split(";")
                         if (path[0].split(":")[1] === value["vid"]) {
-                            cacheData.prices.push({
-                                "from": props[1]["name"],
-                                "label": getLabel(path[1].split(":")[1]),
+                            cache.push({
+                                "label": `${prop.name}: ${value.name}; ${props[1]["name"]}: ${getLabel(path[1].split(":")[1])}`,
                                 "price": getPrice(item["skuId"])
                             })
                         }
                     }
-                    cache.push(cacheData)
+                    // cache.push(cacheData)
                 }
             } catch (e) {
                 console.log(realData);
