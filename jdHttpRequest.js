@@ -264,7 +264,7 @@ let request = {
             } else {
                 cache.push({
                     label: props["1"] + ": " + item["1"],
-                    prices: this.getPrice(item["skuId"], detail)
+                    price: this.getPrice(item["skuId"], detail)
                 })
             }
         }
