@@ -69,61 +69,63 @@ nano71.com = {
     },
     setTaobao(data, first) {
         return new Promise(async resolve => {
-            data["specifications"] = this.parseSpecifications(JSON.parse(data["specifications"]))
-            await this.page.evaluate((data, first) => {
-                let images = document.querySelectorAll(".tb-gallery img")
-                for (let img of images) {
-                    img.src = ""
-                }
-                if (first) {
-                    document.querySelector(".tb-gallery video").src = ""
-                    document.querySelector("#J-From").remove()
-                    document.querySelector(".vjs-control-bar").remove()
-                }
-                try {
-                    document.querySelector(".vjs-center-poster").style.backgroundImage = `url(${data["face"]})`
-                    let labels = document.querySelectorAll(".J_Prop.tb-prop.tb-clear")
-                    labels[0].querySelector(".tb-property-type").innerText = data["specifications"][0]["from"]
-                    labels[1].querySelector(".tb-property-type").innerText = data["specifications"][0]["prices"][0]["from"]
-                    document.querySelector(".tb-main-title").innerText = data["title"]
-                    document.querySelector("#J_SellCounter").innerText = data["sales"]
-                } catch (e) {
-                    console.log(e);
-                }
-            }, data, first)
-            await this.page.$$eval(".J_TSaleProp.tb-clearfix", (elements) => {
-                elements[0].innerHTML = ""
-                elements[1].innerHTML = ""
-            })
-            for (let item of data["specifications"]) {
-                for (let item2 of item.prices) {
-
-
-                }
-            }
-
-
-            await this.page.$$eval(".J_TSaleProp.tb-clearfix", (elements, data) => {
-                let loopAppend = async (item, copy) => {
-                    for (let item2 of item.prices) {
-                        await copy.querySelector("span").innerText = item.label
-                        await elements[1].appendChild(copy)
+                data["specifications"] = this.parseSpecifications(JSON.parse(data["specifications"]))
+                await this.page.evaluate((data, first) => {
+                    let images = document.querySelectorAll(".tb-gallery img")
+                    for (let img of images) {
+                        img.src = ""
                     }
-                }
-                for (let item of data["specifications"]) {
-                    let copy = elements[0].querySelector("li").cloneNode(true)
-                    let copy2 = elements[1].querySelector("li").cloneNode(true)
-                    copy.querySelector("span").innerText = item.label
-                    copy.className = ""
+                    if (first) {
+                        document.querySelector(".tb-gallery video").src = ""
+                        document.querySelector("#J-From").remove()
+                        document.querySelector(".vjs-control-bar").remove()
+                    }
+                    try {
+                        document.querySelector(".vjs-center-poster").style.backgroundImage = `url(${data["face"]})`
+                        let labels = document.querySelectorAll(".J_Prop.tb-prop.tb-clear")
+                        labels[0].querySelector(".tb-property-type").innerText = data["specifications"][0]["from"]
+                        labels[1].querySelector(".tb-property-type").innerText = data["specifications"][0]["prices"][0]["from"]
+                        document.querySelector(".tb-main-title").innerText = data["title"]
+                        document.querySelector("#J_SellCounter").innerText = data["sales"]
+                    } catch (e) {
+                        console.log(e);
+                    }
+                }, data, first)
+                await this.page.$$eval(".J_TSaleProp.tb-clearfix", (elements) => {
                     elements[0].innerHTML = ""
                     elements[1].innerHTML = ""
-                    elements[0].appendChild(copy)
-                    loopAppend(item, copy2)
+                })
+                let max = 0, min = 10000
+                for (let item of data["specifications"]) {
+                    await this.page.$eval(".J_TSaleProp.tb-clearfix", (element, label) => {
+                        let node = document.createElement("li")
+                        let a = document.createElement("a")
+                        a.innerText = label.toString()
+                        node.appendChild(a)
+                        element.appendChild(node)
+                    }, item.label)
+                    for (let item2 of item.prices) {
+                        if (item2.price < min) {
+                            min = item2.price
+                        }
+                        if (item2.price > max) {
+                            max = item2.price
+                        }
+                        await this.page.$$eval(".J_TSaleProp.tb-clearfix", (elements, label) => {
+                            let node = document.createElement("li")
+                            let a = document.createElement("a")
+                            a.innerText = label.toString()
+                            node.appendChild(a)
+                            elements[1].appendChild(node)
+                        }, item2.label)
+                        await this.page.$eval("#J_PromoPriceNum", (element, number) => {
+                            element.innerText = number
+                        }, min + "-" + max)
+                    }
                 }
-            }, data)
-
-            resolve()
-        })
+                resolve()
+            }
+        )
     },
     async updateData(data, i, first) {
         switch (i) {
