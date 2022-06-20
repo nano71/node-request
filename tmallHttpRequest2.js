@@ -256,7 +256,7 @@ let request = {
                              '${title}',
                              '${time}',
                              '${platform}',
-                             '${url}',
+                             '${"https:" + url}',
                              '${shop}',
                              '${originCountry}',
                              '${originProvince}',
@@ -264,7 +264,7 @@ let request = {
                              '${variety}',
                              '${specifications}',
                              '${sales}',
-                             '${face}',
+                             '${"https:" + face}',
                              '${md5(specifications)}',
                              '${baseInformation}'
                              );`.replaceAll("\n", ""),
