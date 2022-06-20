@@ -96,7 +96,11 @@ let request = {
         await page.keyboard.type("柚子", {delay: 100});
         await page.keyboard.press('Enter');
         await page.waitForNavigation()
-        await page.$("f-sort a:nth-child(2)").click()
+        await timeout(2000)
+        await page.$eval(".f-sort a:nth-child(2)", element => {
+            element.click()
+        })
+        await timeout(2000)
         let urls = await page.$$eval(
             selector.jd.urls,
             element => {
