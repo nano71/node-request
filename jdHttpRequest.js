@@ -255,20 +255,12 @@ let request = {
         for (let item of list) {
             if (item["2"]) {
                 cache.push({
-                    form: props["1"],
-                    label: item["1"],
-                    prices: [
-                        {
-                            form: props["2"],
-                            label: item["2"],
-                            price: this.getPrice(item["skuId"], detail)
-                        }
-                    ]
+                    label: `${props["1"]}: ${item["1"]}; ${props["2"]}: ${item["2"]}`,
+                    price: this.getPrice(item["skuId"], detail)
                 })
             } else {
                 cache.push({
-                    form: props["1"],
-                    label: item["1"],
+                    label: props["1"] + ": " + item["1"],
                     prices: this.getPrice(item["skuId"], detail)
                 })
             }

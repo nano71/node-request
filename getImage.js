@@ -1,7 +1,10 @@
 const {connection} = require("./mysqlConnection");
 const puppeteer = require("puppeteer");
 const {timeout} = require("./timeout");
-
+const fs = require("fs");
+const {getType} = require("./getType");
+const {selector} = require("./selector");
+const type = 1
 const nano71 = {}
 nano71.com = {
     list: [[], [], []],
@@ -122,6 +125,7 @@ nano71.com = {
                         }, max + "-" + min)
                     }
                 }
+                await this.getImage(data["uniqueID"], "tb")
                 resolve()
             }
         )
@@ -132,8 +136,24 @@ nano71.com = {
                 return this.setTaobao(data, first)
         }
     },
-    getImage(data) {
-        console.log(data["url"]);
+    async getImage(id, platform) {
+        return new Promise(async resolve => {
+            let folderName = "./images/" + platform + getType(type) + id
+            if (!fs.existsSync(folderName)) {//加载完毕保存图片
+                fs.mkdirSync(folderName);
+            }
+            try {
+                let detail = await this.page.$(selector.taobao.detail.area);
+                detail && await detail.screenshot({
+                    path: folderName + "/detail.png"
+                });
+                console.log("截图成功");
+            } catch (e) {
+                console.log("截图失败", e);
+            }
+            resolve()
+        })
+
     },
     async initPuppeteer() {
         console.log("浏览器初始化");
