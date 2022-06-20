@@ -35,37 +35,50 @@ nano71.com = {
                 await timeout(5000)
                 for (const item of this.list[i]) {
                     await this.updateData(item, i, first)
-                    await timeout(2000)
+                    await timeout(2000000)
                     first = false
                 }
             }
             resolve()
         })
     },
+    parseSpecifications(data) {
+        let cache = [], froms = []
+        for (let item of data) {
+            let demoItem = [{
+                "label": "净含量: 2斤; 单果规格: 【大果】单果约250-300g（品质装，人气爆款！）",
+                "price": "23.8"
+            }]
+            let cacheObject = {
+                from: item.label.split("; ")[0].split(": ")[0],
+                label: item.label.split("; ")[0].split(": ")[1],
+                prices: []
+            }
+            if (!froms.includes(cacheObject.label)) {
+                froms.push(cacheObject.label)
+                cache.push(cacheObject)
+            }
+            cache.at(-1).prices.push({
+                from: item.label.split("; ")[1].split(": ")[0],
+                label: item.label.split("; ")[1].split(": ")[1],
+                price: item.price
+            })
+        }
+        console.log(cache[0].prices);
+        return cache
+    },
     setTaobao(data, first) {
-        data["specifications"] = JSON.parse(data["specifications"])
         return new Promise(async resolve => {
+            data["specifications"] = this.parseSpecifications(JSON.parse(data["specifications"]))
             await this.page.evaluate((data, first) => {
                 let images = document.querySelectorAll(".tb-gallery img")
                 for (let img of images) {
                     img.src = ""
                 }
-                let rows = _ => document.querySelectorAll(".J_TSaleProp.tb-clearfix")
                 if (first) {
                     document.querySelector(".tb-gallery video").src = ""
                     document.querySelector("#J-From").remove()
                     document.querySelector(".vjs-control-bar").remove()
-                }
-
-                for (let item of data["specifications"]) {
-                    const length = rows[0].querySelectorAll("li").length
-                    if (length > 1) for (let i = 1; i < length; i++) {
-                        rows[0].querySelector("li").remove()
-                    }
-                    rows[0].appendChild(rows[0].querySelector("li").cloneNode(true))
-                    for (let item2 in item.prices) {
-
-                    }
                 }
                 try {
                     document.querySelector(".vjs-center-poster").style.backgroundImage = `url(${data["face"]})`
@@ -78,6 +91,37 @@ nano71.com = {
                     console.log(e);
                 }
             }, data, first)
+            await this.page.$$eval(".J_TSaleProp.tb-clearfix", (elements) => {
+                elements[0].innerHTML = ""
+                elements[1].innerHTML = ""
+            })
+            for (let item of data["specifications"]) {
+                for (let item2 of item.prices) {
+
+
+                }
+            }
+
+
+            await this.page.$$eval(".J_TSaleProp.tb-clearfix", (elements, data) => {
+                let loopAppend = async (item, copy) => {
+                    for (let item2 of item.prices) {
+                        await copy.querySelector("span").innerText = item.label
+                        await elements[1].appendChild(copy)
+                    }
+                }
+                for (let item of data["specifications"]) {
+                    let copy = elements[0].querySelector("li").cloneNode(true)
+                    let copy2 = elements[1].querySelector("li").cloneNode(true)
+                    copy.querySelector("span").innerText = item.label
+                    copy.className = ""
+                    elements[0].innerHTML = ""
+                    elements[1].innerHTML = ""
+                    elements[0].appendChild(copy)
+                    loopAppend(item, copy2)
+                }
+            }, data)
+
             resolve()
         })
     },

@@ -280,13 +280,15 @@ let request = {
         }
     },
     getVariety(object) {
+        console.log(object);
         let data = {}
         for (let key in object) {
-            data.originCountry || (data.originCountry = (key === "产地" && key[0]) || (key === "商品产地" && key[0]) || (key === "原" && key[0]) || "")
-            data.originProvince || (data.originProvince = (key === "省份" && key[0]) || "")
-            data.originAddress || (data.originAddress = (key === "城市" && key[0]) || "")
-            data.variety || (data.variety = (key === "特产品类" && key[0]) || (key === "水果种类" && key[0]) || (key === "品种" && key[0]) || (key === "种类" && key[0]) || "")
+            data.originCountry || (data.originCountry = (key === "产地" && object[key][0]) || (key === "原产地" && object[key][0]) || (key === "商品产地" && object[key][0]) || (key === "原" && object[key][0]) || "")
+            data.originProvince || (data.originProvince = (key === "省份" && object[key][0]) || "")
+            data.originAddress || (data.originAddress = (key === "城市" && object[key][0]) || "")
+            data.variety || (data.variety = (key === "特产品类" && object[key][0]) || (key === "水果种类" && object[key][0]) || (key === "品种" && object[key][0]) || (key === "种类" && object[key][0]) || "")
         }
+        console.log([data.originCountry, data.originProvince, data.originAddress, data.variety]);
         return [data.originCountry, data.originProvince, data.originAddress, data.variety]
     },
     getList(page) {
