@@ -6,7 +6,7 @@ const {connection, exists} = require("./mysqlConnection");
 const md5 = require("md5");
 const puppeteer = require("puppeteer");
 const {selector} = require("./selector");
-const type = 1
+const type = 2
 let request = {
     browser: null,
     browserWSEndpoint: null,

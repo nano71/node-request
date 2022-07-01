@@ -4,7 +4,7 @@ const {connection, exists} = require("./mysqlConnection");
 const md5 = require("md5");
 const {timeout} = require("./timeout");
 const {getType} = require("./getType");
-let type = 1
+let type = 2
 let request = {
     async start(start = 1, max) {
         for (let i = start; i < max; i++) {
@@ -68,14 +68,14 @@ let request = {
                         keyword: "柚子",
                         title: item["title"],
                         time: this.getDate(date),
-                        platform: "淘宝",
+                        platform: item["iconList"].includes("tmall") ? "天猫" : "淘宝",
                         shop: null,
                         originCountry: "",
                         originProvince: "",
                         originAddress: "",
                         variety: this.getVariety(),
                         specifications: [],
-                        sales: item["realSales"]?.replace("人累计付款", "").replace("人收货",""),
+                        sales: item["realSales"]?.replace("人累计付款", "").replace("人收货", ""),
                         face: item["pic_path"],
                         md5: null
                     }
@@ -124,7 +124,19 @@ let request = {
                     }
                     data.shop = res.data.data["seller"]["shopName"]
                 } catch (e) {
-                    throw new Error(e)
+
+                    realData = JSON.parse(res.data.data["apiStack"][0]["value"])
+                    cache = {
+                        skuBase: realData.skuBase,
+                        seller: realData.seller,
+                        skuCore: realData.skuCore
+                    }
+                    data.shop = res.data.data["seller"]["shopName"]
+
+
+                    // console.log(JSON.parse(res.data.data["apiStack"][0]["value"]).skuBase);
+
+                    // throw new Error(e)
                 }
                 let setResult
                 try {
