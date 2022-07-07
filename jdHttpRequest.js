@@ -6,11 +6,12 @@ const {connection, exists} = require("./mysqlConnection");
 const md5 = require("md5");
 const puppeteer = require("puppeteer");
 const {selector} = require("./selector");
-const type = 2
+const type = 1
 let request = {
     browser: null,
     browserWSEndpoint: null,
-    baseUrl: "http://tkapi.natapp1.cc",
+    // baseUrl: "http://tkapi.natapp1.cc",
+    baseUrl: "http://103.39.222.93:7269", // new
     async start(start = 1, max) {
         for (let i = start; i < max; i++) {
             await request.get(i)

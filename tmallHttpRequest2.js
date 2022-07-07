@@ -4,14 +4,15 @@ const {connection, exists} = require("./mysqlConnection");
 const md5 = require("md5");
 const {timeout} = require("./timeout");
 const {getType} = require("./getType");
-let type = 2
+let type = 1
 let request = {
+    baseUrl: "http://162.14.108.171:10006",
+    // baseUrl: "http://103.39.222.93:7269", new
     async start(start = 1, max) {
         for (let i = start; i < max; i++) {
             await request.get(i)
         }
     },
-
     getDate(date) {
         return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()} ${date.getHours()}:${date.getMinutes()}:00`
     },
@@ -35,10 +36,9 @@ let request = {
     get(page) {
         return new Promise(async resolve => {
             console.log("第" + page + "页");
-            let baseUrl = "http://162.14.108.171:10006"
             let path = "/taobao/page/search?"
             let token = "bba230047f08154bbecb5a066b0228f3"
-            await axios.get(baseUrl + path + `q=%E6%9F%9A%E5%AD%90&page=${page}&sort=_sale&token=` + token).then(async res => {
+            await axios.get(this.baseUrl + path + `q=%E6%9F%9A%E5%AD%90&page=${page}&sort=_sale&token=` + token).then(async res => {
                 console.log("列表获取成功");
                 let goodsList
                 try {
@@ -96,12 +96,12 @@ let request = {
                     }
                     await timeout(2000)
                 }
-            })
+            }).catch(console.log)
             resolve()
         })
     },
     getTaobaoDetail(data) {
-        const path = "http://162.14.108.171:10006/taobao/page/detail?typeof=3&"
+        const path = this.baseUrl + "/taobao/page/detail?typeof=3&"
         const key = "bba230047f08154bbecb5a066b0228f3"
         const url = path + "key=" + key + "&itemid=" + data.uniqueID
         return new Promise(async resolve => {
