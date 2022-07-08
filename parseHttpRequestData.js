@@ -5,7 +5,7 @@ let parser = {
     list: [],
     regular: /\d[.]?\d*[./-]?\d*[公斤kg千克个粒只][g克斤]?/gi,
     regular2: /[小中特大]大?果|[特超]?[级大]?巨无霸/gi,
-    regular3: /[三葡]?[萄红青蜜白]柚/g,
+    regular3: /[三葡]?[萄红青蜜白西]柚/g,
     init(date) {
         return new Promise(async resolve => {
             await this.getList(date).then(res => this.list = res)
@@ -116,7 +116,7 @@ let parser = {
                 // }
                 if (variety) {
                     // console.log(this.list[index1].title);
-                    item.variety = this.getVariety(this.list[index1].title, variety)
+                    item.variety = this.getVariety(this.list[index1].title, variety).replace("泰国青柚", "泰国白心青柚")
                     item.size = this.getSize(item.variety, item.unitWeight)
                     console.log(item);
                 }
@@ -181,7 +181,7 @@ let parser = {
         if (weight === "NaN斤") {
             return ""
         }
-        let varietyList = ["蜜柚", "青柚", "泰国青柚", "金柚", "沙田柚", "葡萄柚", "三红柚", "红心柚"]
+        let varietyList = ["蜜柚", "青柚", "泰国青柚", "金柚", "沙田柚", "葡萄柚", "三红柚", "红心柚", "西柚"]
         let i = varietyList.indexOf(variety)
         i === -1 && console.log(variety, i);
         switch (i) {
@@ -196,6 +196,7 @@ let parser = {
             case 4:
                 return this.variety3(weight)
             case 5:
+            case 8:
                 return this.variety4(weight)
 
         }
@@ -247,6 +248,19 @@ let parser = {
         if (weight <= "0.9")
             return "巨无霸"
         return "特大巨无霸"
+    },
+    variety5(weight) {
+        if (weight <= "0.5")
+            return "小果"
+        if (weight <= "0.6")
+            return "中果"
+        if (weight <= "0.7")
+            return "大果"
+        if (weight <= "0.84")
+            return "特大果"
+        if (weight <= "0.9")
+            return "巨无霸"
+        return "特大巨无霸"
     }
     ,
     catty(price, number) {
@@ -271,6 +285,7 @@ let parser = {
                 let result
                 await this.exist(object.md5).then(r => result = r)
                 if (result) {
+                    console.log("重复");
                     return resolve()
                 }
                 let sql = "INSERT INTO http_request.pomelo_tidied_data (" + Object.keys(object).toString().replaceAll("'", "")
@@ -308,4 +323,4 @@ function int(string) {
     return parseInt(string)
 }
 
-parser.init(20220602).then(console.log)
+parser.init(20220701).then(console.log)
