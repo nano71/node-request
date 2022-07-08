@@ -32,6 +32,7 @@ let parser = {
     },
     async parseSpecifications(specifications, index1) {
         for (let item of specifications) {
+            let sourceData = JSON.stringify(item)
             let str = JSON.stringify(item).replaceAll(/[克G]/g, "g").replaceAll(/[g斤]-/g, "-").replaceAll(/[只粒]/g, "个")
             let array = str.match(this.regular)
             if (array) {
@@ -118,7 +119,7 @@ let parser = {
                     // console.log(this.list[index1].title);
                     item.variety = this.getVariety(this.list[index1].title, variety).replace("泰国青柚", "泰国白心青柚")
                     item.size = this.getSize(item.variety, item.unitWeight)
-                    console.log(item);
+                    // console.log(item);
                 }
                 if (array.length > 2) {
                     console.log(this.list[index1]);
@@ -137,6 +138,14 @@ let parser = {
                     let unit = item.unitWeight.at(-1)
                     item.unitWeight = float(item.unitWeight.replace(unit, "")).toFixed(2) + unit
                 }
+                if (item.weight.length > 5) {
+                    let unit = item.weight.at(-1)
+                    item.weight = float(item.weight.replace(unit, "")).toFixed(2) + unit
+                }
+                if (item.unitCount.includes(".")) {
+                    let unit = item.unitCount.at(-1)
+                    item.unitCount = Math.floor(int(item.unitCount.replace("个", ""))) + unit
+                }
                 let object = {
                     id: randomID(),
                     sourceID: data.id,
@@ -144,7 +153,7 @@ let parser = {
                     type: data.type,
                     title: this.list[index1].title,
                     platform: this.list[index1].platform,
-                    specification: JSON.stringify(item),
+                    specification: sourceData,
                     variety: item.variety,
                     weight: item.weight,
                     unitWeight: item.unitWeight,
@@ -290,12 +299,12 @@ let parser = {
                 }
                 let sql = "INSERT INTO http_request.pomelo_tidied_data (" + Object.keys(object).toString().replaceAll("'", "")
                     + ") VALUES ('" + Object.values(object).join("','") + "');"
-                console.log(sql);
+                // console.log(sql);
                 connection.query(sql,
                     [],
                     (error, result) => {
                         if (error) {
-                            console.log(object)
+                            // console.log(object)
                             throw new Error(error)
                         }
                         resolve(result)
@@ -323,4 +332,5 @@ function int(string) {
     return parseInt(string)
 }
 
+// parser.init(20220601).then(console.log)
 parser.init(20220701).then(console.log)
