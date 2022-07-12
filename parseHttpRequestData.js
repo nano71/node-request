@@ -8,7 +8,8 @@ let parser = {
     errorDataInfo: [],
     list: [],
     canUpdate: true,
-    regular: /\d*[.]?\d*[g克斤]?[./-]?\d?[.]?\d+[公斤kg千克粒只][g克斤]?|\d+个/gi,
+    canTimeout: false,
+    regular: /\d*[.]?\d+[g克斤]?[./-]?\d?[.]?\d+[公斤kg千克粒只][g克斤]?|\d+个/gi,
     regular2: /[小中特大]大?果|[特超]?[级大]?巨无霸/gi,
     regular3: /(泰国白心)?[三葡沙白]?[萄红青蜜白西田金心]柚/g,
     regular4: /\d*[g斤]?-\d*?[g斤]\/个|单[果颗个]/g,
@@ -68,6 +69,7 @@ let parser = {
             .replaceAll(/[只粒]/g, "个")
             .replaceAll(")斤", "斤")
             .replaceAll(" ", "")
+            .replaceAll(/\D-/g, "")
             .replaceAll("--", "-")
     },
     async parseSpecifications(specifications, data) {
@@ -75,8 +77,7 @@ let parser = {
     },
     async parseSpecification(item, data) {
         return new Promise(async resolve => {
-            await timeout(500, "")
-
+            this.canTimeout && await timeout(500, "")
             console.log("parseSpecification");
             item.price = item.prices || item.price
             delete item.prices
@@ -108,7 +109,7 @@ let parser = {
             array = this.getMedian(array)
             array = this.parseThree(array, isMultiply)
             console.log("parse end", array);
-            if (!array || array.length !== 2) {
+            if (!array || array.length !== 2 || (array[0].includes("个") && array[1].includes("个"))) {
                 this.errorData.push(data)
                 this.errorDataInfo.push("数据模糊 - " + array + " - " + item.label)
                 return resolve()
