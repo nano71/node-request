@@ -1,12 +1,8 @@
-module.exports.timeout = async function (type, log) {
+module.exports.timeout = async function (delay = parseInt((Math.random() * 5000).toFixed(0)), log) {
     return new Promise(resolve => {
-        let randomTime = parseInt((Math.random() * 5000).toFixed(0));
-        if (type) {
-            randomTime = type
-        }
         if (log === undefined) {
-            console.log(randomTime, "毫秒延迟");
+            console.log(delay, "毫秒延迟");
         }
-        setTimeout(resolve, randomTime)
+        setTimeout(resolve, delay)
     })
 }

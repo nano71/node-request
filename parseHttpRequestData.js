@@ -1,25 +1,36 @@
 const {connection} = require("./mysqlConnection");
 const {randomID} = require("./randomID");
 const md5 = require("md5");
+const {timeout} = require("./timeout");
 let parser = {
     badData: [],
     errorData: [],
+    errorDataInfo: [],
     list: [],
     canUpdate: true,
-    regular: /\d*[.]?\d*[./-]?\d?[.]?\d*[公斤kg千克粒只][g克斤]?|\d+个/gi,
+    regular: /\d*[.]?\d*[g克斤]?[./-]?\d?[.]?\d+[公斤kg千克粒只][g克斤]?|\d+个/gi,
     regular2: /[小中特大]大?果|[特超]?[级大]?巨无霸/gi,
-    regular3: /[三葡沙]?[萄红青蜜白西田金]柚/g,
+    regular3: /(泰国白心)?[三葡沙白]?[萄红青蜜白西田金心]柚/g,
     regular4: /\d*[g斤]?-\d*?[g斤]\/个|单[果颗个]/g,
+    regular5: /柚子[酱皮饮茶叶汁籽核仁]/g,
+    regular6: /[总共]重?/g,
+    regular7: /\d[红白].+\d[红白]/g,
+    regular8: /\d[红白]/g,
+    weightWords: ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十"],
     init(date) {
         return new Promise(async resolve => {
+            console.log("开始");
             await this.getList(date).then(res => this.list = res)
             await this.loopList()
-            console.log(this.errorData);
+            console.log("错误数据数量", this.errorData.length);
+            console.log("错误数据", this.errorData[10]);
+            console.log("错误数据信息", this.errorDataInfo[10]);
             resolve("结束")
         })
     },
     getList(date) {
         return new Promise(resolve => {
+            console.log("getList");
             connection.query("select * from http_request.tmall where type = ? and sales > 0", [date],
                 (error, result) => {
                     if (error)
@@ -30,167 +41,119 @@ let parser = {
         })
     },
     async loopList() {
+        console.log("loopList");
+        let data = i => this.list[i]
         for (let i = 0; i < this.list.length; i++) {
+            console.log("i", i, data(i).uniqueID);
+            if (data(i).sales === "0" || this.regular5.test(data(i).title)) continue
             this.list[i].specifications = JSON.parse(this.list[i].specifications)
-            await this.parseSpecifications(this.list[i].specifications, i)
+            await this.parseSpecifications(this.list[i].specifications, data(i))
         }
     },
-    async parseSpecifications(specifications, index1) {
-        let data = this.list[index1]
-        for (let item of specifications) {
-            if (data.sales === "0") {
-                break
+    parseSourceData(sourceData) {
+        for (let i = 0; i < this.weightWords.length; i++) {
+            let word = this.weightWords[i]
+            let index = sourceData.indexOf(word + "两")
+            if (index !== -1) {
+                sourceData.replace(word + "两", i * 50 + 50 + "g")
             }
+        }
+        return sourceData
+            .replaceAll("斤到", "斤-")
+            .replaceAll("g到", "g-")
+            .replaceAll("一斤", "1斤")
+            .replaceAll(/半?斤到/g, "250g-")
+            .replaceAll("半斤", "250g")
+            .replaceAll(/[克G]/g, "g")
+            .replaceAll(/[只粒]/g, "个")
+            .replaceAll(")斤", "斤")
+            .replaceAll(" ", "")
+            .replaceAll("--", "-")
+    },
+    async parseSpecifications(specifications, data) {
+        for (let item of specifications) await this.parseSpecification(item, data)
+    },
+    async parseSpecification(item, data) {
+        return new Promise(async resolve => {
+            await timeout(500, "")
+
+            console.log("parseSpecification");
             item.price = item.prices || item.price
             delete item.prices
             let sourceData = JSON.stringify(item)
-            if (this.regular4.test(sourceData)) {
-                item.isMultiply = true
-            }
-
-            let string = sourceData.replaceAll(/[克G]/g, "g").replaceAll(/[g斤]-/gi, "-").replaceAll(/[只粒]/g, "个").replaceAll(" ", "")
-            if (/\d[红白].+\d[红白]/g.test(string) && !string.includes("个")) {
-                string += "共" + (int(string.match(/\d[红白]/g)[0][0]) * 2) + "个"
-            }
+            let string = this.parseSourceData(sourceData)
             let array = string.match(this.regular)
-            if (array) {
-                let cache = []
-                for (let i = 0; i < array.length; i++) {
-                    let value = array[i]
-                    if (value.includes("g") && int(value) < 10) {
-                        continue
-                    }
-                    if (!cache.includes(value)) {
-                        cache.push(value);
-                    }
+
+            let cache = []
+            let isMultiply = false
+            if (!array)
+                return resolve()
+            if (this.regular7.test(string) && !string.includes("个"))
+                string += "共" + (int(string.match(this.regular8)[0][0]) * 2) + "个"
+            for (let i = 0; i < array.length; i++) {
+                let value = array[i]
+                if (value.includes("g") && int(value) < 10) {
+                    continue
                 }
-                array = cache.filter(item => item !== undefined)
-            } else {
-                break
+                if (!cache.includes(value)) {
+                    cache.push(value);
+                }
+            }
+            array = cache.filter(item => item !== undefined)
+            string.match(this.regular4) && (isMultiply = true)
+            console.log("source", array);
+            if (array.length === 3 && isMultiply) {
+                !array[0].includes("个") && array.shift()
+            }
+            array = this.getMedian(array)
+            array = this.parseThree(array, isMultiply)
+            console.log("parse end", array);
+            if (!array || array.length !== 2) {
+                this.errorData.push(data)
+                this.errorDataInfo.push("数据模糊 - " + array + " - " + item.label)
+                return resolve()
+            }
+            if (!array.join().includes("个")) {
+                isMultiply = true
+                array[0] = this.getWeight(array[0])
+                array[1] = this.getWeight(array[1])
+                array = array.sort((x, y) => float(x) - float(y))
+                array.unshift(Math.floor(array.pop() / array[0]) + "个")
+                array[1] += "斤"
+                console.log(array);
             }
 
-            length = array.length
-            if (length) {
-                console.log(item);
-                console.log(array);
-                if (array.length >= 3) {
-                    console.log(item);
-                }
-                let units = ["斤", "g", "克", "个", "粒", "只"], i = units.indexOf(array.at(-1).at(-1))
-                for (let index = 0; index < array.length; index++) {
-                    const value = array[index].toLowerCase();
-                    let a = (value.split("/").length > 1 && value.split("/")) || value.split("-")
-                    if (a.length > 1) {
-                        i = units.indexOf(a.at(-1).at(-1))
-                        array[index] = this.getMedian(a, units[i])
-                        break
+            for (let j = 0; j < array.length; j++) {
+                if (array[j].includes("个")) {
+                    item.unitCount = int(array[j])
+                    int(item.price) > 100 && item.unitCount > 3 && this.getWeight(array[0]) < 5 && (isMultiply = true)
+                    this.regular6.test(sourceData) && (isMultiply = false)
+
+                    if (isMultiply) {
+                        array = [array[Math.abs(j - 1)]]
+                        item.unitWeight = this.getWeight(array[0]) + "斤"
+                        item.weight = this.getWeight(array[0]) * float(item.unitCount) + "斤"
+                    } else {
+                        array = [this.getWeight(array[Math.abs(j - 1)]) + "斤"]
+                        item.unitWeight = this.getWeight(array[0]) / float(item.unitCount) + "斤"
+                        item.weight = this.getWeight(array[0]) + "斤"
                     }
                 }
+            }
 
-                let that = this
-                parseThree()
+            if (this.getWeight(item.unitWeight) < 0.4) {
+                item.unitWeight = item.weight
+                item.weight = float(item.unitCount) * float(item.weight) + "斤"
+            }
 
-                function parseThree() {
-                    if (length === 3) {
+            let variety = item.label.match(this.regular3) || data.title.match(this.regular3) || data.ext.match(this.regular3) || (data.title.includes("泰国") && "泰国白心青柚")
 
-                        array = array.sort((x, y) => float(x) - float(y))
-                        if (array[1].at(-1) === array[2].at(-1)) {
-                            if (!item.isMultiply && float(array[2]) < float(array[1])) {
-                                array[2] = array[1]
-                            }
-                            if (item.isMultiply && float(array[2]) > float(array[1])) {
-                                array[2] = array[1]
-                            }
-                            array = [array[0], array[2]]
-                            console.log(array);
-
-                        } else if (array[1].at(-1) === "斤" && array[2].at(-1) === "g") {
-                            array[1] = float(array[1].replace("斤", "")) * 500 + "g"
-                            parseThree()
-                            console.log(array);
-
-                        } else if (array[0].at(-1) === array[2].at(-1)) {
-                            console.log(item);
-                            if (!item.isMultiply && float(array[2]) < float(array[0])) {
-                                array[2] = array[0]
-                            }
-                            if (item.isMultiply && float(array[2]) > float(array[0])) {
-                                array[2] = array[0]
-                            }
-
-                            array = [array[1], array[2]]
-                            console.log(array);
-
-                        } else if (array[0].at(-1) === "斤" && array[2].at(-1) === "g") {
-                            array[0] = float(array[0].replace("斤", "")) * 500 + "g"
-                            parseThree()
-                            console.log(array);
-                        }
-                    }
-                }
-
-                console.log(array);
-
-                if (i === -1) {
-                    console.log("无重量|数据有误", item, array);
-                    break
-                }
-                if (array.length === 1)
-                    break
-                else if (array.length === 2) {
-                    this.canUpdate = false
-                    if (data.id === "5SMn6KTbbrWMWB8HAXTSzcEH4342AEwk") {
-                        array
-                        data
-                        item
-                    }
-                    if (!array.join().includes("个")) {
-                        item.isMultiply = true
-                        array[0] = this.getWeight(array[0])
-                        array[1] = this.getWeight(array[1])
-                        array = array.sort()
-                        array.unshift(Math.floor(array.pop() / array[0]) + "个")
-                        array[1] += "斤"
-                        console.log(array);
-                    }
-
-                    for (let j = 0; j < array.length; j++) {
-                        if (array[j].includes("个")) {
-                            item.unitCount = int(array[j])
-                            if (int(item.price) > 100 && item.unitCount <= 5) {
-                                item.isMultiply = true
-                            }
-                            if (item.isMultiply) {
-                                array = [array[Math.abs(j - 1)]]
-                                item.unitWeight = this.getWeight(array[0]) + "斤"
-                                item.weight = this.getWeight(array[0]) * float(item.unitCount) + "斤"
-                            } else {
-                                array = [this.getWeight(array[Math.abs(j - 1)]) + "斤"]
-                                item.unitWeight = this.getWeight(array[0]) / float(item.unitCount) + "斤"
-                                item.weight = this.getWeight(array[0]) + "斤"
-                            }
-                        }
-                    }
-
-                } else {
-                    this.errorData.push(data)
-                }
-
-                if (this.getWeight(item.unitWeight) < 0.4) {
-                    item.unitWeight = item.weight
-                    item.weight = float(item.unitCount) * float(item.weight) + "斤"
-                }
-
-                let variety = item.label.match(this.regular3) || data.title.match(this.regular3)
-
-                if (variety) {
-                    item.variety = this.getVariety(data.title, variety).replace("泰国青柚", "泰国白心青柚")
-                    item.size = this.getSize(item.variety, item.unitWeight)
-                } else {
-                    console.log(data);
-                    console.log(data.title.match(this.regular3));
-                    this.errorData.push(data)
-                }
+            if (variety) {
+                item.variety = this.getVariety(data.title, variety).replace("泰国青柚", "泰国白心青柚")
+                item.size = this.getSize(item.variety, item.unitWeight)
+            } else {
+                this.errorData.push(data)
+                this.errorDataInfo.push("品种识别失败")
             }
 
             if (item.weight && item.unitWeight) {
@@ -220,15 +183,55 @@ let parser = {
                 }
                 object.md5 = md5(object.specification + object.sourceID)
                 this.canUpdate && await this.update(object)
+                console.log(object);
             }
             console.log("next--------------------------------------------")
-        }
+            return resolve()
+
+        })
     },
     sort(array) {
         return array.sort((x, y) => float(x) - float(y))
     },
-    getMedian(array, replace) {
-        return (float(array[0]) + float(array[1].replace(replace, ""))) / 2 + replace
+    parseThree(array, isMultiply) {
+        if (array.length === 3) {
+            console.log("parseThree");
+            array = array.sort((x, y) => float(x) - float(y))
+            if (array[1].at(-1) === array[2].at(-1)) {
+                if (!isMultiply && float(array[2]) < float(array[1]) || isMultiply && float(array[2]) > float(array[1]))
+                    array[2] = array[1]
+                array = [array[0], array[2]]
+            } else if (array[1].at(-1) === "斤" && array[2].at(-1) === "g") {
+                array[1] = float(array[1].replace("斤", "")) * 500 + "g"
+                return this.parseThree(array, isMultiply)
+            } else if (array[0].at(-1) === array[2].at(-1)) {
+                if (!isMultiply && float(array[2]) < float(array[0]) || isMultiply && float(array[2]) > float(array[0]))
+                    array[2] = array[0]
+                array = [array[1], array[2]]
+            } else if (array[0].at(-1) === "斤" && array[2].at(-1) === "g") {
+                array[0] = float(array[0].replace("斤", "")) * 500 + "g"
+                return this.parseThree(array, isMultiply)
+            }
+        }
+        return array
+    },
+    getMedian(array) {
+        for (let i = 0; i < array.length; i++) {
+            const value = array[i].toLowerCase();
+            let a = (value.split("/").length > 1 && value.split("/")) || value.split("-")
+            if (a.length > 1) {
+                let unit
+                for (let j = 0; j < a.length; j++) {
+                    unit = array[i].at(-1)
+                    if (/[斤克k]g?/g.test(a[j].at(-1)))
+                        unit = a[j].at(-1)
+                    a[j] = this.getWeight(a[j] + unit)
+                }
+                array[i] = ((float(a[0]) + float(a[1])) / 2).toFixed(2) + "斤"
+                return array
+            }
+        }
+        return array
     },
     getVariety(title, variety) {
         // console.log(variety);
