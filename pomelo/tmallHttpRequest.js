@@ -5,15 +5,14 @@ const readline = require('readline').createInterface({
     input: process.stdin,
     output: process.stdout
 })
-const {timeout} = require("./timeout");
-const {pageScroll} = require("./pageScroll");
-const {connection} = require("./mysqlConnection");
+const {timeout} = require("../utils/timeout");
+const {pageScroll} = require("../utils/pageScroll");
+const {connection} = require("../mysql/mysqlConnection");
 const useProxy = require("puppeteer-page-proxy");
-const {randomID} = require("./randomID");
-const {getProxy, setProxy} = require("./getProxy");
+const {randomID} = require("../utils/randomID");
+const {getProxy, setProxy} = require("../utils/getProxy");
 const {selector} = require("./selector");
 let browser,
-    type = 1, //期数
     addCount = 0, //隔页数 为0则取消隔页翻页
     current = 0,
     profileID = "",
@@ -50,6 +49,7 @@ let browser,
 
 async function request(url, first, test) {
     if (first) {
+        console.log(global.period);
         console.log("开始");
         await puppeteer.launch({
             ignoreHTTPSErrors: true,
@@ -723,7 +723,7 @@ async function requestDetail(url, first) {
             if (!fs.existsSync("./images")) {//加载完毕保存图片
                 fs.mkdirSync("./images");
             }
-            let cacheName = smallPlatform + d.getFullYear() + "" + m + "0" + type
+            let cacheName = smallPlatform + global.period
             folderName = "./images/" + cacheName + data.uniqueID
             if (!fs.existsSync(folderName)) {//加载完毕保存图片
                 fs.mkdirSync(folderName);
@@ -774,7 +774,7 @@ async function exists(id) {
     return new Promise(resolve => {
         connection.query(
             "select * from tmall where uniqueID = ? and type = ?",
-            [id, d.getFullYear() + "" + m + "0" + type],
+            [id, global.period],
             async (err, result) => {
                 length = result.length
                 resolve();
@@ -829,7 +829,7 @@ async function insert({
                                         md5)
                      VALUES ('${randomID()}',
                              '${uniqueID}',
-                             '${d.getFullYear() + "" + m + "0" + type}',
+                             '${global.period}',
                              '${keyword}',
                              '${title}',
                              '${time}',

@@ -1,5 +1,5 @@
 const axios = require("axios"), rankTypes = ["rank_inc", "rank_dec", "rank_digg"]
-const {connection} = require("./mysqlConnection");
+const {connection} = require("../mysql/mysqlConnection");
 const removeEmoji = /[\uD83C|\uD83D\uD83E][\uDC00-\uDFFF][\u200D|\uFE0F]|[\uD83C|\uD83D\uD83E][\uDC00-\uDFFF]|[\d|*#]\uFE0F\u20E3|[\d|#]\u20E3|[\u203C-\u3299]\uFE0F\u200D|[\u203C-\u3299]\uFE0F|[\u2122-\u2B55]|\u303D|[A9|E]\u3030|uA9|uAE|\u3030/ig
 
 

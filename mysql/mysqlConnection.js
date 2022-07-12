@@ -1,5 +1,7 @@
 const mysql = require("mysql");
-const {getType} = require("./getType");
+const {getType} = require("../utils/getType");
+
+
 module.exports.connection = mysql.createPool({
     host: "121.37.198.222",
     port: "3306",
@@ -14,7 +16,7 @@ module.exports.exists = async (id, type) => {
             `select *
              from tmall
              where uniqueID like ${id}
-               and type like ${getType(type)}`,
+               and type like ${global.period}`,
             [],
             async (err, result) => {
                 console.log(result.length, "条已存在数据", id);

@@ -1,7 +1,8 @@
-const {connection} = require("./mysqlConnection");
-const {randomID} = require("./randomID");
+const {connection} = require("../mysql/mysqlConnection");
+const {randomID} = require("../utils/randomID");
 const md5 = require("md5");
-const {timeout} = require("./timeout");
+const {timeout} = require("../utils/timeout");
+
 let parser = {
     badData: [],
     errorData: [],
@@ -20,6 +21,7 @@ let parser = {
     weightWords: ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十"],
     init(date) {
         return new Promise(async resolve => {
+            console.log(global["period"]);
             console.log("开始");
             await this.getList(date).then(res => this.list = res)
             await this.loopList()
@@ -375,5 +377,5 @@ function int(string) {
     return parseInt(string.replace(/[g斤个]/g, ""))
 }
 
-parser.init(20220601).then(console.log)
-// parser.init(20220701).then(console.log)
+// parser.init(20220601).then(console.log)
+parser.init(global.period).then(console.log)

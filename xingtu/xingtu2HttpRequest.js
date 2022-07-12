@@ -1,8 +1,8 @@
 const puppeteer = require("puppeteer");
-const {timeout} = require("./timeout");
-const {pageScroll} = require("./pageScroll");
-const {connection} = require("./mysqlConnection");
-const {toBase64} = require("./base64");
+const {timeout} = require("../utils/timeout");
+const {pageScroll} = require("../utils/pageScroll");
+const {connection} = require("../mysql/mysqlConnection");
+const {toBase64} = require("../utils/base64");
 
 let list, browser, browserWSEndpoint
 connection.query("select * from starmap where realID is null", [], async (err, result) => {

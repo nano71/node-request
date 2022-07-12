@@ -1,28 +1,31 @@
 const axios = require("axios");
-const {randomID} = require("./randomID");
-const {getType} = require("./getType");
-const {timeout} = require("./timeout");
-const {connection, exists} = require("./mysqlConnection");
+const {randomID} = require("../utils/randomID");
+const {getType} = require("../utils/getType");
+const {timeout} = require("../utils/timeout");
+const {connection, exists} = require("../mysql/mysqlConnection");
 const md5 = require("md5");
 const puppeteer = require("puppeteer");
 const {selector} = require("./selector");
-const type = 1
-let request = {
+module.exports.jd = {
     browser: null,
     browserWSEndpoint: null,
     // baseUrl: "http://tkapi.natapp1.cc",
     baseUrl: "http://103.39.222.93:7269", // new
     async start(start = 1, max) {
-        for (let i = start; i < max; i++) {
-            await request.get(i)
-        }
+        console.log(global.period);
+        return new Promise(async resolve => {
+            for (let i = start; i < max; i++) {
+                await this.get(i)
+            }
+            resolve("结束")
+        })
     },
     async get(page = 1, list) {
         let date = new Date()
         list || await this.getList(page).then(res => list = res)
         for (let item of list) {
             let hasExists = false
-            await exists(item["wareid"] || item, type).then(res => hasExists = res)
+            await exists(item["wareid"] || item, global.period).then(res => hasExists = res)
             if (hasExists) {
                 if (!item["wareid"] || !item) {
                     console.log(item);
@@ -32,7 +35,7 @@ let request = {
             }
             let data = {
                 id: randomID(),
-                type: getType(type),
+                type: global.period,
                 url: "//item.jd.com/" + (item["wareid"] || item) + ".html",
                 uniqueID: item["wareid"] || item,
                 keyword: "柚子",
@@ -59,68 +62,52 @@ let request = {
         }
     },
     async getUrls() {
-        console.log("开始");
-        await puppeteer.launch({
-            ignoreHTTPSErrors: true,
-            headless: false,
-            userDataDir: "test-profile-dir",
-            devtools: false,
-            dumpio: true,
-            args: [
-                "--no-sandbox",
-                "--disable-setuid-sandbox",
-                "--disable-web-security",
-                "--disable-features=IsolateOrigins,site-per-process",
-                '--disable-automation'
-            ],
-            ignoreDefaultArgs: ['--enable-automation']
-        }).then(
-            (Browser) => {
-                this.browserWSEndpoint = Browser.wsEndpoint();
-                console.log("节点已注册");
-            }
-        );
-        console.log("puppeteer已注册");
-        this.browser = await puppeteer.connect({browserWSEndpoint: this.browserWSEndpoint});
-        console.log("浏览器已连接");
-        const page = await this.browser.newPage();
-        await page.setViewport({
-            width: 1600,
-            height: 900,
-            deviceScaleFactor: 1,
-        });
-        await page.goto("https://search.jd.com/Search", {timeout: 10000});
-        // await page.waitForNavigation()
-        await page.focus(selector.jd.search);
-        await page.keyboard.press('Backspace');
-        await page.keyboard.press('Backspace');
-        await page.keyboard.type("柚子", {delay: 100});
-        await page.keyboard.press('Enter');
-        await page.waitForNavigation()
-        await timeout(2000)
-        await page.$eval(".f-sort a:nth-child(2)", element => {
-            element.click()
-        })
-        await timeout(2000)
-        let urls = await page.$$eval(
-            selector.jd.urls,
-            element => {
-                let urls = []
-                for (let i = 0; i < element.length; i++) {
-                    urls.push(element[i].getAttribute("href"))
+        return new Promise(async resolve => {
+            console.log(global.period);
+            console.log("开始");
+            await puppeteer.launch({
+                ignoreHTTPSErrors: true,
+                headless: false,
+                userDataDir: "test-profile-dir",
+                devtools: false,
+                dumpio: true,
+                args: [
+                    "--no-sandbox",
+                    "--disable-setuid-sandbox",
+                    "--disable-web-security",
+                    "--disable-features=IsolateOrigins,site-per-process",
+                    '--disable-automation'
+                ],
+                ignoreDefaultArgs: ['--enable-automation']
+            }).then(
+                (Browser) => {
+                    this.browserWSEndpoint = Browser.wsEndpoint();
+                    console.log("节点已注册");
                 }
-                return urls;
-            }
-        )
-        for (let i in urls) {
-            urls[i] = urls[i].replace("//item.jd.com/", "").replace(".html", "")
-        }
-        console.log(urls);
-        await this.get(0, urls)
-        await (await page.$(selector.jd.nextUrl)).click()
-        await timeout(3000)
-        for (let i = 0; i < 100; i++) {
-            urls = await page.$$eval(
+            );
+            console.log("puppeteer已注册");
+            this.browser = await puppeteer.connect({browserWSEndpoint: this.browserWSEndpoint});
+            console.log("浏览器已连接");
+            const page = await this.browser.newPage();
+            await page.setViewport({
+                width: 1600,
+                height: 900,
+                deviceScaleFactor: 1,
+            });
+            await page.goto("https://search.jd.com/Search", {timeout: 10000});
+            // await page.waitForNavigation()
+            await page.focus(selector.jd.search);
+            await page.keyboard.press('Backspace');
+            await page.keyboard.press('Backspace');
+            await page.keyboard.type("柚子", {delay: 100});
+            await page.keyboard.press('Enter');
+            await page.waitForNavigation()
+            await timeout(2000)
+            await page.$eval(".f-sort a:nth-child(2)", element => {
+                element.click()
+            })
+            await timeout(2000)
+            let urls = await page.$$eval(
                 selector.jd.urls,
                 element => {
                     let urls = []
@@ -133,11 +120,31 @@ let request = {
             for (let i in urls) {
                 urls[i] = urls[i].replace("//item.jd.com/", "").replace(".html", "")
             }
+            console.log(urls);
             await this.get(0, urls)
-            await timeout(3000)
             await (await page.$(selector.jd.nextUrl)).click()
             await timeout(3000)
-        }
+            for (let i = 0; i < 100; i++) {
+                urls = await page.$$eval(
+                    selector.jd.urls,
+                    element => {
+                        let urls = []
+                        for (let i = 0; i < element.length; i++) {
+                            urls.push(element[i].getAttribute("href"))
+                        }
+                        return urls;
+                    }
+                )
+                for (let i in urls) {
+                    urls[i] = urls[i].replace("//item.jd.com/", "").replace(".html", "")
+                }
+                await this.get(0, urls)
+                await timeout(3000)
+                await (await page.$(selector.jd.nextUrl)).click()
+                await timeout(3000)
+            }
+            resolve("结束")
+        })
     },
     insert({
                id,
@@ -305,4 +312,4 @@ let request = {
 }
 
 // request.start(1, 100)
-request.getUrls()
+// jd.getUrls()

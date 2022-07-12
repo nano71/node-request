@@ -1,7 +1,7 @@
-const key = require("./keyInfo")
+const key = require("../utils/keyInfo")
 const fs = require('fs');
 const puppeteer = require('puppeteer');
-const {connection} = require("./mysqlConnection");
+const {connection} = require("../mysql/mysqlConnection");
 let browserWSEndpoint,
     browser,
     requestData = {

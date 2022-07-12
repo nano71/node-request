@@ -1,4 +1,4 @@
-module.exports.getType = (type) => {
+module.exports.getType = (type = "1") => {
     let date = new Date()
     let m = date.getMonth() + 1
     if (m < 10) {

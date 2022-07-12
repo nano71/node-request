@@ -1,17 +1,21 @@
 const axios = require("axios")
-const {randomID} = require("./randomID");
-const {connection, exists} = require("./mysqlConnection");
+const {randomID} = require("../utils/randomID");
+const {connection, exists} = require("../mysql/mysqlConnection");
 const md5 = require("md5");
-const {timeout} = require("./timeout");
-const {getType} = require("./getType");
-let type = 1
-let request = {
+const {timeout} = require("../utils/timeout");
+const {getType} = require("../utils/getType");
+
+module.exports.tmall = {
     baseUrl: "http://162.14.108.171:10006",
     // baseUrl: "http://103.39.222.93:7269", new
     async start(start = 1, max) {
-        for (let i = start; i < max; i++) {
-            await request.get(i)
-        }
+        return new Promise(async resolve => {
+            console.log(global.period);
+            for (let i = start; i < max; i++) {
+                await this.get(i)
+            }
+            resolve("结束")
+        })
     },
     getDate(date) {
         return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()} ${date.getHours()}:${date.getMinutes()}:00`
@@ -54,7 +58,7 @@ let request = {
                         continue
                     }
                     let hasExists = false
-                    await exists(item["item_id"], type).then(res => hasExists = res)
+                    await exists(item["item_id"], global.period).then(res => hasExists = res)
                     if (hasExists) {
                         console.log("数据已经存在", item["item_id"]);
                         continue
@@ -62,7 +66,7 @@ let request = {
                     let date = new Date()
                     let data = {
                         id: randomID(),
-                        type: getType(type),
+                        type: global.period,
                         url: item["auctionURL"],
                         uniqueID: item["item_id"],
                         keyword: "柚子",
@@ -291,4 +295,4 @@ let request = {
     }
 }
 
-request.start(1, 100).then(console.log)
+

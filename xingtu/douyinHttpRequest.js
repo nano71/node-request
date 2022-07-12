@@ -1,9 +1,9 @@
-const {connection} = require("./mysqlConnection");
+const {connection} = require("../mysql/mysqlConnection");
 const puppeteer = require('puppeteer');
-const {timeout} = require("./timeout");
-const {parseUrl} = require("./parseUrl");
-const {pageScroll} = require("./pageScroll");
-const {toBase64, parseBase64} = require("./base64");
+const {timeout} = require("../utils/timeout");
+const {parseUrl} = require("../utils/parseUrl");
+const {pageScroll} = require("../utils/pageScroll");
+const {toBase64, parseBase64} = require("../utils/base64");
 let list,
     browser,
     browserWSEndpoint,

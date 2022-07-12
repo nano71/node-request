@@ -1,6 +1,6 @@
 const axios = require("axios");
 const mysql = require("mysql");
-const {toBase64} = require("./base64");
+const {toBase64} = require("../utils/base64");
 
 let url = "https://www.xingtu.cn/v/api/user/author_page/?author_id="
 let option = "&platform_source=1&platform_channel=1&request_source_type=1&recommend=false"
