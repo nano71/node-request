@@ -29,17 +29,9 @@ let start = {
                         return this.next(1)
                     }
                     if (parse(number)) {
-                        this.next(2)
-                    } else {
-                        tmall.start(1, 100).then(console.log)
-                    }
-                })
-            case 2:
-                return readline.question("\n如何爬? \n0:纯接口 , 1:接口和puppeteer浏览器\ninput: ", (number = 0) => {
-                    if (parse(number)) {
                         jd.getUrls().then(console.log)
                     } else {
-                        jd.start(1, 100).then(console.log)
+                        tmall.start(1, 100).then(console.log)
                     }
                 })
         }

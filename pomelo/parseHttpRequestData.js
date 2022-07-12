@@ -3,7 +3,7 @@ const {randomID} = require("../utils/randomID");
 const md5 = require("md5");
 const {timeout} = require("../utils/timeout");
 
-let parser = {
+module.exports.parser = {
     badData: [],
     errorData: [],
     errorDataInfo: [],
@@ -378,4 +378,4 @@ function int(string) {
 }
 
 // parser.init(20220601).then(console.log)
-parser.init(global.period).then(console.log)
+

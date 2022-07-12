@@ -204,7 +204,7 @@ module.exports.jd = {
                              '${originAddress}',
                              '${variety}',
                              '${specifications}',
-                             '${sales}',
+                             '${sales || 0}',
                              '${"https:" + face}',
                              '${md5(specifications || "1")}',
                              '${baseInformation || ""}'
