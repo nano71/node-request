@@ -62,7 +62,7 @@ let nano71 = {
                         }
                     for (let url of cacheList) {
                         let i = cacheList.indexOf(url)
-                        console.log(i);
+                        console.log(i, url);
                         await exist(url).then(async exist => !exist && await this.getDetail(url))
                         console.log("进度: " + i / cacheList.length * 100 + "%");
                     }
@@ -250,7 +250,11 @@ function getType(string) {
 function getText(node) {
     // console.log(node);
     if (node) {
-        return node.children[0].data
+        try {
+            return node.children[0].data.replaceAll('"', "")
+        } catch (e) {
+            return ""
+        }
     } else {
         return ""
     }
