@@ -8,7 +8,7 @@ module.exports.parser = {
     errorData: [],
     errorDataInfo: [],
     list: [],
-    canUpdate: true,
+    canInset: true,
     canTimeout: false,
     regular: /\d*[.]?\d+[g克斤]?[./-]?\d?[.]?\d+[公斤kg千克粒只][g克斤]?|\d+个/gi,
     regular2: /[小中特大]大?果|[特超]?[级大]?巨无霸/gi,
@@ -21,7 +21,7 @@ module.exports.parser = {
     weightWords: ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十"],
     init(date) {
         return new Promise(async resolve => {
-            console.log(global["period"]);
+            console.log(date);
             console.log("开始");
             await this.getList(date).then(res => this.list = res)
             await this.loopList()
@@ -79,6 +79,8 @@ module.exports.parser = {
     },
     async parseSpecification(item, data) {
         return new Promise(async resolve => {
+            await this.update(data.url, data.uniqueID)
+            return resolve()
             this.canTimeout && await timeout(500, "")
             console.log("parseSpecification");
             item.price = item.prices || item.price
@@ -174,6 +176,7 @@ module.exports.parser = {
                     uniqueID: data.uniqueID,
                     type: data.type,
                     title: data.title,
+                    url: data.url,
                     platform: data.platform,
                     specification: sourceData,
                     variety: item.variety,
@@ -185,7 +188,7 @@ module.exports.parser = {
                     size: item.size || "统货",
                 }
                 object.md5 = md5(object.specification + object.sourceID)
-                this.canUpdate && await this.update(object)
+                this.canInset && await this.inset(object)
                 console.log(object);
             }
             console.log("next--------------------------------------------")
@@ -334,7 +337,7 @@ module.exports.parser = {
     toFixed2(number) {
         return Math.round(number * 100) / 100
     },
-    update(object) {
+    inset(object) {
         return new Promise(async resolve => {
                 let result
                 await this.exist(object.md5).then(r => result = r)
@@ -358,6 +361,14 @@ module.exports.parser = {
             }
         )
     },
+    update(url, uniqueID) {
+        return new Promise(resolve => {
+            connection.query("update pomelo_tidied_data set url = ? where uniqueID = ? and url is null ", [url, uniqueID], (errors, result) => {
+                if (errors) throw  new Error(errors)
+                resolve(result)
+            })
+        })
+    },
     exist(md5) {
         return new Promise(resolve => {
             connection.query("select md5 from http_request.pomelo_tidied_data where md5 = ?", [md5], (error, result) => {
@@ -365,7 +376,6 @@ module.exports.parser = {
                 resolve(result.length)
             })
         })
-
     }
 }
 
