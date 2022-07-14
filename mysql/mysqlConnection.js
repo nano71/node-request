@@ -14,7 +14,7 @@ module.exports.exists = async (id, type) => {
     return new Promise(resolve => {
         this.connection.query(
             `select *
-             from tmall
+             from pomelo
              where uniqueID like ${id}
                and type like ${global.period}`,
             [],

@@ -1,6 +1,5 @@
 const axios = require("axios");
 const {randomID} = require("../utils/randomID");
-const {getType} = require("../utils/getType");
 const {timeout} = require("../utils/timeout");
 const {connection, exists} = require("../mysql/mysqlConnection");
 const md5 = require("md5");
@@ -172,7 +171,7 @@ module.exports.jd = {
         return new Promise(async (resolve) => {
             console.log("开始添加");
             await connection.query(
-                `INSERT INTO tmall (id,
+                `INSERT INTO pomelo (id,
                                         uniqueID,
                                         type,
                                         keyword,

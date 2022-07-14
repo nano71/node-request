@@ -34,7 +34,7 @@ module.exports.parser = {
     getList(date) {
         return new Promise(resolve => {
             console.log("getList");
-            connection.query("select * from http_request.tmall where type = ? and sales > 0", [date],
+            connection.query("select * from http_request.pomelo where type = ? and sales > 0", [date],
                 (error, result) => {
                     if (error)
                         throw new Error(error)

@@ -773,7 +773,7 @@ async function exists(id) {
     }
     return new Promise(resolve => {
         connection.query(
-            "select * from tmall where uniqueID = ? and type = ?",
+            "select * from pomelo where uniqueID = ? and type = ?",
             [id, global.period],
             async (err, result) => {
                 length = result.length
@@ -810,7 +810,7 @@ async function insert({
             if (length === 0) {
                 console.log("开始添加");
                 await connection.query(
-                    `INSERT INTO tmall (id,
+                    `INSERT INTO pomelo (id,
                                         uniqueID,
                                         type,
                                         keyword,

@@ -246,7 +246,7 @@ module.exports.tmall = {
         return new Promise(async (resolve) => {
             console.log("开始添加");
             await connection.query(
-                `INSERT INTO tmall (id,
+                `INSERT INTO pomelo (id,
                                         uniqueID,
                                         type,
                                         keyword,

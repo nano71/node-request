@@ -15,7 +15,7 @@ nano71.com = {
     demoUrl: ["https://item.taobao.com/item.htm?id=613861906903&ns=1&abbucket=3#detail", "https://detail.tmall.com/item.htm?id=673120529235&ns=1&abbucket=3", "https://item.jd.com/10034229127417.html"],
     init(platform) {
         this.platform = platform
-        connection.query("select * from http_request.tmall", [], async (error, res) => {
+        connection.query("select * from http_request.pomelo", [], async (error, res) => {
             // this.list = res
             for (let item of res) {
                 const url = item["url"]
