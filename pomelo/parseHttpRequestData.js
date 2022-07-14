@@ -34,7 +34,7 @@ module.exports.parser = {
     getList(date) {
         return new Promise(resolve => {
             console.log("getList");
-            connection.query("select * from http_request.pomelo where type = ? and sales > 0", [date],
+            connection.query("select * from http_request.tmall where type = ? and sales > 0", [date],
                 (error, result) => {
                     if (error)
                         throw new Error(error)
@@ -178,7 +178,11 @@ module.exports.parser = {
                     title: data.title,
                     url: data.url,
                     platform: data.platform,
-                    specification: sourceData,
+                    specification: sourceData
+                        .replaceAll(/[{}\[\]"]/g, "")
+                        .replaceAll("label:", "")
+                        .replaceAll("price:", "价格: ")
+                        .replaceAll(",", "  -  "),
                     variety: item.variety,
                     weight: item.weight,
                     unitWeight: item.unitWeight,
@@ -186,6 +190,8 @@ module.exports.parser = {
                     unitCount: item.unitCount,
                     price: item.price,
                     size: item.size || "统货",
+                    shop: data.shop,
+                    face: data.face
                 }
                 object.md5 = md5(object.specification + object.sourceID)
                 this.canInset && await this.inset(object)

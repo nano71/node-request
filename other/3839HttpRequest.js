@@ -123,7 +123,8 @@ let nano71 = {
                     let imageList = [], images = $(".img-slider li > a");
                     await parseType(tags).then(r => gameDetail.typeids = r.toString())
                     images.each((i, element) => {
-                        if (getUrl(element).indexOf("http") === -1) {
+                        let url = getUrl(element)
+                        if (url) if (url.indexOf("http") === -1) {
                             imageList.push("https:" + getUrl(element));
                             if (i === 0) {
                                 gameDetail.face = "https:" + getUrl(element);
