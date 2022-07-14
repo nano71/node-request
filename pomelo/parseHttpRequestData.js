@@ -79,8 +79,8 @@ module.exports.parser = {
     },
     async parseSpecification(item, data) {
         return new Promise(async resolve => {
-            await this.update(data.url, data.uniqueID)
-            return resolve()
+            // await this.update(data.url, data.uniqueID)
+            // return resolve()
             this.canTimeout && await timeout(500, "")
             console.log("parseSpecification");
             item.price = item.prices || item.price

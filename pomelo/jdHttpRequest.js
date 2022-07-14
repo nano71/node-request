@@ -11,6 +11,7 @@ module.exports.jd = {
     browserWSEndpoint: null,
     // baseUrl: "http://tkapi.natapp1.cc",
     baseUrl: "http://103.39.222.93:7269", // new
+    baseUrl2: "http://tkapi.natapp1.cc", // new
     async start(start = 1, max) {
         console.log(global.period);
         return new Promise(async resolve => {
@@ -222,9 +223,9 @@ module.exports.jd = {
         return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()} ${date.getHours()}:${date.getMinutes()}:00`
     },
     getJdDetail(data) {
-        const url = this.baseUrl + "/jd.get.item?token=bba230047f08154bbecb5a066b0228f3&itemid=" + data.uniqueID
+        const url = this.baseUrl2 + "/jd.get.item?token=bba230047f08154bbecb5a066b0228f3&itemid=" + data.uniqueID
         return new Promise(resolve => {
-            axios.get(url).then(res => {
+            axios.get(url).then(async res => {
                 let detail, item
                 try {
                     detail = res.data.data
@@ -250,7 +251,12 @@ module.exports.jd = {
                     data.variety = cache[3]
                     data.baseInformation = JSON.stringify(item["expandAttrDesc"])
                 }
-                data.specifications = this.parseSpecifications(detail)
+                if (JSON.stringify(detail).includes("pgPrice")) {
+                    console.log("团购价格");
+                    await this.getOtherDetail(detail).then(r => data.specifications = r)
+                } else {
+                    data.specifications = this.parseSpecifications(detail)
+                }
                 console.log(data.specifications);
                 return resolve(data)
             }).catch(e => {
@@ -258,6 +264,32 @@ module.exports.jd = {
                 return resolve(false)
             })
         })
+    },
+    async getOtherDetail(detail) {
+        return new Promise(async resolve => {
+            let list = detail["item"]["newColorSize"]
+            let props = detail["item"]["saleProp"]
+            let cache = []
+            for (let item of list) {
+                console.log("list数量", list.length);
+                console.log("item", item);
+                await axios.get(this.baseUrl2 + "/jd.get.item?token=bba230047f08154bbecb5a066b0228f3&itemid=" + item["skuId"]).then(res => {
+                    if (item["2"])
+                        cache.push({
+                            label: `${props["1"]}: ${item["1"]}; ${props["2"]}: ${item["2"]}`,
+                            price: detail["pc_item_data"]["domain"]["data"]["jxPingou"]["pgPrice"]
+                        })
+                    else
+                        cache.push({
+                            label: `${props["1"]}: ${item["1"]}`,
+                            price: detail["pc_item_data"]["domain"]["data"]["jxPingou"]["pgPrice"]
+                        })
+                })
+            }
+            console.log("cache", cache);
+            resolve(JSON.stringify(cache))
+        })
+
     },
     parseSpecifications(detail) {
         let list = detail["item"]["newColorSize"]
