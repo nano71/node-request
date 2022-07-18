@@ -217,6 +217,7 @@ let jd = {
                     if (err) {
                         throw err;
                     }
+                    console.log("sales", sales);
                     resolve();
                 }
             );

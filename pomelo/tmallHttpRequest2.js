@@ -1,6 +1,6 @@
 const axios = require("axios")
 const {randomID} = require("../utils/randomID");
-const {connection, exists} = require("../mysql/mysqlConnection");
+const {connection, exists, exists4tm} = require("../mysql/mysqlConnection");
 const md5 = require("md5");
 const {timeout} = require("../utils/timeout");
 const {getType} = require("../utils/getType");
@@ -58,7 +58,7 @@ module.exports.tmall = {
                         continue
                     }
                     let hasExists = false
-                    await exists(item["item_id"], global.period).then(res => hasExists = res)
+                    await exists4tm(item["item_id"], global.period).then(res => hasExists = res)
                     if (hasExists) {
                         console.log("数据已经存在", item["item_id"]);
                         continue
@@ -83,7 +83,7 @@ module.exports.tmall = {
                         face: item["pic_path"],
                         md5: null
                     }
-                    await timeout(5000)
+                    // await timeout(5000)
                     let count = 1
                     let getTaobaoDetail = async _ => await this.getTaobaoDetail(data).then(async res => {
                         if (count <= 3) {
@@ -213,6 +213,7 @@ module.exports.tmall = {
                 console.log("类型有误");
                 return ""
             }
+            cache = cache.sort()
             return JSON.stringify(cache)
         } else {
             console.log("类型2");
@@ -242,6 +243,7 @@ module.exports.tmall = {
         if (!specifications.length) {
             return console.log("无价格表,跳过")
         }
+
         console.log(specifications);
         return new Promise(async (resolve) => {
             console.log("开始添加");
@@ -281,13 +283,14 @@ module.exports.tmall = {
                              '${specifications}',
                              '${sales}',
                              '${"https://" + face.replaceAll("http://", "").replaceAll("https://", "").replaceAll("//", "https://")}',
-                             '${md5(specifications)}',
+                             '${md5(type + specifications)}',
                              '${baseInformation}'
                              );`.replaceAll("\n", ""),
                 (err, result) => {
                     if (err) {
                         throw err;
                     }
+                    console.log("sales", sales);
                     resolve();
                 }
             );

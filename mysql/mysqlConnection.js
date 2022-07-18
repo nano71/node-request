@@ -25,3 +25,18 @@ module.exports.exists = async (specifications, type) => {
             })
     })
 }
+module.exports.exists4tm = async (uniqueID, type) => {
+    return new Promise(resolve => {
+        this.connection.query(
+            `select *
+             from pomelo
+             where uniqueID = ?
+               and type = ?`,
+            [uniqueID, type],
+            async (err, result) => {
+                console.log(result.length, "条已存在数据");
+                if (err) throw new Error(err)
+                return resolve(result.length > 0);
+            })
+    })
+}
