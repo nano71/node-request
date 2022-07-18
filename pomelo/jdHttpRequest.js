@@ -11,6 +11,7 @@ let jd = {
     // baseUrl: "http://tkapi.natapp1.cc",
     baseUrl: "http://103.39.222.93:7269", // new
     baseUrl2: "http://tkapi.natapp1.cc", // new
+    baseUrl3: "http://162.14.108.171:10006",
     async start(start = 1, max = 100) {
         console.log(global.period);
         return new Promise(async resolve => {
@@ -217,7 +218,8 @@ let jd = {
                     if (err) {
                         throw err;
                     }
-                    console.log("sales", sales);
+
+                    console.log(uniqueID, "sales:", sales);
                     resolve();
                 }
             );
@@ -227,7 +229,7 @@ let jd = {
         return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()} ${date.getHours()}:${date.getMinutes()}:00`
     },
     getJdDetail(data) {
-        const url = this.baseUrl2 + "/jd.get.item?token=bba230047f08154bbecb5a066b0228f3&itemid=" + data.uniqueID
+        const url = this.baseUrl3 + "/jd.get.item?token=bba230047f08154bbecb5a066b0228f3&itemid=" + data.uniqueID
         return new Promise(resolve => {
             axios.get(url).then(async res => {
                 let detail, item
@@ -245,7 +247,8 @@ let jd = {
                     console.log(data);
                 }
                 data.title = detail["skuName"]
-                data.sales = detail["CommentsCount"][0]?.["CommentCountStr"]
+                data.sales = detail["CommentsCount"][0] && (detail["CommentsCount"][0]["CommentCountStr"] || detail["CommentsCount"][0]["DefaultGoodCountStr"])
+                data.sales = data.sales?.replace("万", "0000")
                 data.face = detail["image"]
                 if (item["expandAttrDesc"]) {
                     let cache = this.getVariety(item["expandAttrDesc"])
