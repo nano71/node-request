@@ -1,17 +1,17 @@
 const axios = require("axios");
-const { randomID } = require("../utils/randomID");
-const { timeout } = require("../utils/timeout");
-const { connection, exists } = require("../mysql/mysqlConnection");
+const {randomID} = require("../utils/randomID");
+const {timeout} = require("../utils/timeout");
+const {connection, exists} = require("../mysql/mysqlConnection");
 const md5 = require("md5");
 const puppeteer = require("puppeteer");
-const { selector } = require("./selector");
+const {selector} = require("./selector");
 let jd = {
     browser: null,
     browserWSEndpoint: null,
     // baseUrl: "http://tkapi.natapp1.cc",
     baseUrl: "http://103.39.222.93:7269", // new
     baseUrl2: "http://tkapi.natapp1.cc", // new
-    async start(start = 1, max=100) {
+    async start(start = 1, max = 100) {
         console.log(global.period);
         return new Promise(async resolve => {
             for (let i = start; i < max; i++) {
@@ -90,7 +90,7 @@ let jd = {
                 }
             );
             console.log("puppeteer已注册");
-            this.browser = await puppeteer.connect({ browserWSEndpoint: this.browserWSEndpoint });
+            this.browser = await puppeteer.connect({browserWSEndpoint: this.browserWSEndpoint});
             console.log("浏览器已连接");
             const page = await this.browser.newPage();
             await page.setViewport({
@@ -98,12 +98,12 @@ let jd = {
                 height: 900,
                 deviceScaleFactor: 1,
             });
-            await page.goto("https://search.jd.com/Search", { timeout: 10000 });
+            await page.goto("https://search.jd.com/Search", {timeout: 10000});
             // await page.waitForNavigation()
             await page.focus(selector.jd.search);
             await page.keyboard.press('Backspace');
             await page.keyboard.press('Backspace');
-            await page.keyboard.type("柚子", { delay: 100 });
+            await page.keyboard.type("柚子", {delay: 100});
             await page.keyboard.press('Enter');
             await page.waitForNavigation()
             await timeout(2000)
@@ -151,24 +151,24 @@ let jd = {
         })
     },
     insert({
-        id,
-        uniqueID,
-        type,
-        keyword,
-        title,
-        time,
-        platform,
-        url,
-        shop,
-        originCountry,
-        originProvince,
-        originAddress,
-        variety,
-        specifications,
-        sales,
-        face,
-        baseInformation
-    }) {
+               id,
+               uniqueID,
+               type,
+               keyword,
+               title,
+               time,
+               platform,
+               url,
+               shop,
+               originCountry,
+               originProvince,
+               originAddress,
+               variety,
+               specifications,
+               sales,
+               face,
+               baseInformation
+           }) {
         if (!specifications) {
             return console.log("无价格表,跳过", uniqueID)
         }
@@ -348,7 +348,7 @@ let jd = {
 
 // request.start(1, 100)
 // jd.getUrls()
-module.exports.jd
+module.exports = jd
 
 // global.period = 20220701
 // jd.start()
