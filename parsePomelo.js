@@ -1,5 +1,5 @@
-const {getType} = require("./utils/getType");
-const {parser} = require("./pomelo/parseHttpRequestData");
+const { getType } = require("./utils/getType");
+const parser = require("./pomelo/parseHttpRequestData");
 const readline = require('readline').createInterface({
     input: process.stdin,
     output: process.stdout

@@ -1,6 +1,6 @@
 const {getType} = require("./utils/getType");
 const {tmall} = require("./pomelo/tmallHttpRequest2");
-const {jd} = require("./pomelo/jdHttpRequest");
+const jd = require("./pomelo/jdHttpRequest");
 const readline = require('readline').createInterface({
     input: process.stdin,
     output: process.stdout

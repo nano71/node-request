@@ -1,17 +1,17 @@
 const axios = require("axios");
-const {randomID} = require("../utils/randomID");
-const {timeout} = require("../utils/timeout");
-const {connection, exists} = require("../mysql/mysqlConnection");
+const { randomID } = require("../utils/randomID");
+const { timeout } = require("../utils/timeout");
+const { connection, exists } = require("../mysql/mysqlConnection");
 const md5 = require("md5");
 const puppeteer = require("puppeteer");
-const {selector} = require("./selector");
-module.exports.jd = {
+const { selector } = require("./selector");
+let jd = {
     browser: null,
     browserWSEndpoint: null,
     // baseUrl: "http://tkapi.natapp1.cc",
     baseUrl: "http://103.39.222.93:7269", // new
     baseUrl2: "http://tkapi.natapp1.cc", // new
-    async start(start = 1, max) {
+    async start(start = 1, max=100) {
         console.log(global.period);
         return new Promise(async resolve => {
             for (let i = start; i < max; i++) {
@@ -24,15 +24,7 @@ module.exports.jd = {
         let date = new Date()
         list || await this.getList(page).then(res => list = res)
         for (let item of list) {
-            let hasExists = false
-            await exists(item["wareid"] || item, global.period).then(res => hasExists = res)
-            if (hasExists) {
-                if (!item["wareid"] || !item) {
-                    console.log(item);
-                }
-                console.log("数据已存在", item["wareid"] || item)
-                continue
-            }
+
             let data = {
                 id: randomID(),
                 type: global.period,
@@ -55,7 +47,19 @@ module.exports.jd = {
             }
             let getDetail = async _ => await this.getJdDetail(data).then(async res => {
                 res || (console.log("正在重试", data.uniqueID), await timeout(5000), await getDetail())
-                res && (await this.insert(res))
+                if (res) {
+                    let hasExists = false
+                    await exists(res["specifications"], global.period).then(res => hasExists = res)
+                    if (hasExists) {
+                        if (!item["wareid"] || !item) {
+                            console.log(item);
+                        }
+                        console.log("数据已存在", item["wareid"] || item)
+                    } else {
+                        await this.insert(res)
+                    }
+                }
+
             })
             await getDetail()
             await timeout(2000)
@@ -86,7 +90,7 @@ module.exports.jd = {
                 }
             );
             console.log("puppeteer已注册");
-            this.browser = await puppeteer.connect({browserWSEndpoint: this.browserWSEndpoint});
+            this.browser = await puppeteer.connect({ browserWSEndpoint: this.browserWSEndpoint });
             console.log("浏览器已连接");
             const page = await this.browser.newPage();
             await page.setViewport({
@@ -94,12 +98,12 @@ module.exports.jd = {
                 height: 900,
                 deviceScaleFactor: 1,
             });
-            await page.goto("https://search.jd.com/Search", {timeout: 10000});
+            await page.goto("https://search.jd.com/Search", { timeout: 10000 });
             // await page.waitForNavigation()
             await page.focus(selector.jd.search);
             await page.keyboard.press('Backspace');
             await page.keyboard.press('Backspace');
-            await page.keyboard.type("柚子", {delay: 100});
+            await page.keyboard.type("柚子", { delay: 100 });
             await page.keyboard.press('Enter');
             await page.waitForNavigation()
             await timeout(2000)
@@ -147,24 +151,24 @@ module.exports.jd = {
         })
     },
     insert({
-               id,
-               uniqueID,
-               type,
-               keyword,
-               title,
-               time,
-               platform,
-               url,
-               shop,
-               originCountry,
-               originProvince,
-               originAddress,
-               variety,
-               specifications,
-               sales,
-               face,
-               baseInformation
-           }) {
+        id,
+        uniqueID,
+        type,
+        keyword,
+        title,
+        time,
+        platform,
+        url,
+        shop,
+        originCountry,
+        originProvince,
+        originAddress,
+        variety,
+        specifications,
+        sales,
+        face,
+        baseInformation
+    }) {
         if (!specifications) {
             return console.log("无价格表,跳过", uniqueID)
         }
@@ -307,7 +311,7 @@ module.exports.jd = {
                 })
             }
         }
-
+        cache.sort()
         return JSON.stringify(cache)
     },
     getPrice(id, detail) {
@@ -344,3 +348,7 @@ module.exports.jd = {
 
 // request.start(1, 100)
 // jd.getUrls()
+module.exports.jd
+
+// global.period = 20220701
+// jd.start()

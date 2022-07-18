@@ -1,25 +1,25 @@
 const mysql = require("mysql");
-const {getType} = require("../utils/getType");
+const { getType } = require("../utils/getType");
 
 
 module.exports.connection = mysql.createPool({
-    host: "121.37.198.222",
+    host: "119.29.102.216",
     port: "3306",
-    user: "root",
-    password: "14dfc14b652ae6cf",
+    user: "http_request",
+    password: "ftNEADnLd3xcXbAd",
     database: "http_request",
     connectionLimit: "20",
 })
-module.exports.exists = async (id, type) => {
+module.exports.exists = async (specifications, type) => {
     return new Promise(resolve => {
         this.connection.query(
             `select *
              from pomelo
-             where uniqueID like ${id}
-               and type like ${global.period}`,
-            [],
+             where specifications = ?
+               and type = ?`,
+            [specifications, type],
             async (err, result) => {
-                console.log(result.length, "条已存在数据", id);
+                console.log(result.length, "条已存在数据");
                 if (err) throw new Error(err)
                 return resolve(result.length > 0);
             })

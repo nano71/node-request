@@ -1,9 +1,9 @@
-const {connection} = require("../mysql/mysqlConnection");
-const {randomID} = require("../utils/randomID");
+const { connection } = require("../mysql/mysqlConnection");
+const { randomID } = require("../utils/randomID");
 const md5 = require("md5");
-const {timeout} = require("../utils/timeout");
+const { timeout } = require("../utils/timeout");
 
-module.exports.parser = {
+let parser = {
     badData: [],
     errorData: [],
     errorDataInfo: [],
@@ -26,15 +26,15 @@ module.exports.parser = {
             await this.getList(date).then(res => this.list = res)
             await this.loopList()
             console.log("错误数据数量", this.errorData.length);
-            console.log("错误数据", this.errorData[10]);
-            console.log("错误数据信息", this.errorDataInfo[10]);
+            console.log("错误数据", this.errorData[0]);
+            console.log("错误数据信息", this.errorDataInfo[0]);
             resolve("结束")
         })
     },
     getList(date) {
         return new Promise(resolve => {
             console.log("getList");
-            connection.query("select * from http_request.tmall where type = ? and sales > 0", [date],
+            connection.query("select * from http_request.pomelo where type = ? and sales > 0", [date],
                 (error, result) => {
                     if (error)
                         throw new Error(error)
@@ -61,6 +61,13 @@ module.exports.parser = {
                 sourceData.replace(word + "两", i * 50 + 50 + "g")
             }
         }
+        if (!sourceData.includes("克") && !sourceData.toLowerCase().includes("g")) {
+            let array = sourceData.match(/\d+-\d+/g)
+            if (array && array[0].length === 7) {
+                sourceData = sourceData.replace(array[0], array[0] + "g")
+            }
+        }
+
         return sourceData
             .replaceAll("斤到", "斤-")
             .replaceAll("g到", "g-")
@@ -114,7 +121,7 @@ module.exports.parser = {
             array = this.parseThree(array, isMultiply)
             console.log("parse end", array);
             if (!array || array.length !== 2 || (array[0].includes("个") && array[1].includes("个"))) {
-                this.errorData.push(data)
+                this.errorData.push(item)
                 this.errorDataInfo.push("数据模糊 - " + array + " - " + item.label)
                 return resolve()
             }
@@ -193,7 +200,7 @@ module.exports.parser = {
                     shop: data.shop,
                     face: data.face
                 }
-                object.md5 = md5(object.specification + object.sourceID)
+                object.md5 = md5(sourceData + object.type)
                 this.canInset && await this.inset(object)
                 console.log(object);
             }
@@ -345,32 +352,32 @@ module.exports.parser = {
     },
     inset(object) {
         return new Promise(async resolve => {
-                let result
-                await this.exist(object.md5).then(r => result = r)
-                if (result) {
-                    console.log("重复");
-                    return resolve()
-                }
-                let sql = "INSERT INTO http_request.pomelo_tidied_data (" + Object.keys(object).toString().replaceAll("'", "")
-                    + ") VALUES ('" + Object.values(object).join("','") + "');"
-                // console.log(sql);
-                connection.query(sql,
-                    [],
-                    (error, result) => {
-                        if (error) {
-                            // console.log(object)
-                            throw new Error(error)
-                        }
-                        resolve(result)
-                    }
-                )
+            let result
+            await this.exist(object.md5).then(r => result = r)
+            if (result) {
+                console.log("重复");
+                return resolve()
             }
+            let sql = "INSERT INTO http_request.pomelo_tidied_data (" + Object.keys(object).toString().replaceAll("'", "")
+                + ") VALUES ('" + Object.values(object).join("','") + "');"
+            // console.log(sql);
+            connection.query(sql,
+                [],
+                (error, result) => {
+                    if (error) {
+                        // console.log(object)
+                        throw new Error(error)
+                    }
+                    resolve(result)
+                }
+            )
+        }
         )
     },
     update(url, uniqueID) {
         return new Promise(resolve => {
             connection.query("update pomelo_tidied_data set url = ? where uniqueID = ? and url is null ", [url, uniqueID], (errors, result) => {
-                if (errors) throw  new Error(errors)
+                if (errors) throw new Error(errors)
                 resolve(result)
             })
         })
@@ -378,7 +385,7 @@ module.exports.parser = {
     exist(md5) {
         return new Promise(resolve => {
             connection.query("select md5 from http_request.pomelo_tidied_data where md5 = ?", [md5], (error, result) => {
-                if (error) throw  new Error(error)
+                if (error) throw new Error(error)
                 resolve(result.length)
             })
         })
@@ -393,5 +400,6 @@ function int(string) {
     return parseInt(string.replace(/[g斤个]/g, ""))
 }
 
-// parser.init(20220601).then(console.log)
+//parser.init(20220702).then(console.log)
 
+module.exports = parser
