@@ -210,7 +210,7 @@ let jd = {
                              '${specifications}',
                              '${sales || 0}',
                              '${"https:" + face}',
-                             '${md5(specifications || "1")}',
+                             '${md5(type + specifications)}',
                              '${baseInformation || ""}'
                              );`.replaceAll("\n", ""),
                 (err, result) => {
