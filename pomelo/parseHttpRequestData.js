@@ -252,7 +252,7 @@ let parser = {
                         unit = a[j].at(-1)
                     a[j] = this.getWeight(a[j] + unit)
                 }
-                array[i] = ((float(a[0]) + float(a[1])) / 2).toFixed(2) + "斤"
+                array[i] = ((float(a[0]) + float(a[1])) / 2).toFixed(2) + unit
                 return array
             }
         }
