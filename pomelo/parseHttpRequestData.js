@@ -10,7 +10,7 @@ let parser = {
     list: [],
     canInset: true,
     canTimeout: false,
-    regular: /\d*[.]?\d+[g克斤]?[./-]?\d?[.]?\d+[公斤kg千克粒只][g克斤]?|\d+个/gi,
+    regular: /\d*[.]?\d*[g克斤]?[./-]?\d?[.]?\d+[公斤kg千克粒只][g克斤]?|\d+个/gi,
     regular2: /[小中特大]大?果|[特超]?[级大]?巨无霸/gi,
     regular3: /(泰国白心)?[三葡沙白红]?[萄红青蜜白西田金心]柚/g,
     regular4: /\d*[g斤]?-\d*?[g斤]\/个|单[果颗个]/g,
