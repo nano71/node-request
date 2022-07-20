@@ -1,7 +1,7 @@
-const { connection } = require("../mysql/mysqlConnection")
+const {connection} = require("../mysql/mysqlConnection")
 const md5 = require("md5");
 const sql = require("../utils/sql");
-const { timeout } = require("../utils/timeout");
+const {timeout} = require("../utils/timeout");
 const timestampToTime = require("../utils/time")
 let nano71 = {
     list: [],
@@ -22,6 +22,7 @@ let nano71 = {
             item.time = timestampToTime(new Date(item.time).getTime())
             item.specifications = this.parseSpecifications(item.specifications)
             item.md5 = md5(item.type + item.specifications)
+            item.sales = parseInt(item.sales)
             console.log("id", item.id);
             console.log("type", item.type);
             console.log("md5", item.md5);
@@ -34,7 +35,7 @@ let nano71 = {
         }
         console.log("this.list.length: ", this.list.length);
         console.log("cache.length: ", cache.length);
-        
+
         for (const item of cache) {
             await this.insert(item)
         }
@@ -45,7 +46,7 @@ let nano71 = {
     getList() {
         console.log("getList");
         return new Promise(resolve => {
-            let sql = "select * from tmall"
+            let sql = "select * from pomelo"
             connection.query(sql, [], (error, result) => {
                 if (error) throw new Error(error)
                 resolve(result)

@@ -1,7 +1,7 @@
-const { connection } = require("../mysql/mysqlConnection");
-const { randomID } = require("../utils/randomID");
+const {connection} = require("../mysql/mysqlConnection");
+const {randomID} = require("../utils/randomID");
 const md5 = require("md5");
-const { timeout } = require("../utils/timeout");
+const {timeout} = require("../utils/timeout");
 
 let parser = {
     badData: [],
@@ -12,7 +12,7 @@ let parser = {
     canTimeout: false,
     regular: /\d*[.]?\d+[g克斤]?[./-]?\d?[.]?\d+[公斤kg千克粒只][g克斤]?|\d+个/gi,
     regular2: /[小中特大]大?果|[特超]?[级大]?巨无霸/gi,
-    regular3: /(泰国白心)?[三葡沙白]?[萄红青蜜白西田金心]柚/g,
+    regular3: /(泰国白心)?[三葡沙白红]?[萄红青蜜白西田金心]柚/g,
     regular4: /\d*[g斤]?-\d*?[g斤]\/个|单[果颗个]/g,
     regular5: /柚子[酱皮饮茶叶汁籽核仁]/g,
     regular6: /[总共]重?/g,
@@ -159,13 +159,18 @@ let parser = {
             }
 
             let variety = item.label.match(this.regular3) || data.title.match(this.regular3) || data.ext.match(this.regular3) || (data.title.includes("泰国") && "泰国白心青柚")
-
             if (variety) {
                 item.variety = this.getVariety(data.title, variety).replace("泰国青柚", "泰国白心青柚")
+                if (item.variety === "泰国泰") {
+                    this.errorData.push(data)
+                    this.errorDataInfo.push("品种识别失败")
+                    return resolve()
+                }
                 item.size = this.getSize(item.variety, item.unitWeight)
             } else {
                 this.errorData.push(data)
                 this.errorDataInfo.push("品种识别失败")
+                return resolve()
             }
 
             if (item.weight && item.unitWeight) {
@@ -198,7 +203,8 @@ let parser = {
                     price: item.price,
                     size: item.size || "统货",
                     shop: data.shop,
-                    face: data.face
+                    face: data.face,
+                    sales: parseInt(data.sales)
                 }
                 object.md5 = md5(sourceData + object.type)
                 this.canInset && await this.inset(object)
@@ -255,9 +261,12 @@ let parser = {
     getVariety(title, variety) {
         // console.log(variety);
         // variety.length > 1 && console.log(variety);
-        variety[0] === "红柚" && (variety[0] = "红心柚")
-        variety[0].includes("白柚") && (variety[0] = "蜜柚")
+        variety[0] === "红柚" && (variety[0] = "红心蜜柚")
+        variety[0].includes("白柚") && (variety[0] = "白心蜜柚")
         if (/[蜜红金]/g.test(variety[0])) {
+            if (/红心蜜柚/g.test(variety[0])) {
+                return "红心蜜柚"
+            }
             return variety[0].replace("泰国", "")
         }
         return ((title.includes("泰国") && "泰国") || "") + variety[0]
@@ -266,12 +275,14 @@ let parser = {
         if (weight === "NaN斤") {
             return ""
         }
-        let varietyList = ["蜜柚", "青柚", "泰国青柚", "金柚", "沙田柚", "葡萄柚", "三红柚", "红心柚", "西柚", "泰国白心青柚"]
+        let varietyList = ["蜜柚", "青柚", "泰国青柚", "金柚", "沙田柚", "葡萄柚", "三红柚", "红心柚", "西柚", "泰国白心青柚", "红心蜜柚", "白心蜜柚"]
         let i = varietyList.indexOf(variety)
         switch (i) {
             case 0:
             case 6:
             case 7:
+            case 10:
+            case 11:
                 return this.variety1(weight)
             case 1:
             case 2:
@@ -352,26 +363,26 @@ let parser = {
     },
     inset(object) {
         return new Promise(async resolve => {
-            let result
-            await this.exist(object.md5).then(r => result = r)
-            if (result) {
-                console.log("重复");
-                return resolve()
-            }
-            let sql = "INSERT INTO http_request.pomelo_tidied_data (" + Object.keys(object).toString().replaceAll("'", "")
-                + ") VALUES ('" + Object.values(object).join("','") + "');"
-            // console.log(sql);
-            connection.query(sql,
-                [],
-                (error, result) => {
-                    if (error) {
-                        // console.log(object)
-                        throw new Error(error)
-                    }
-                    resolve(result)
+                let result
+                await this.exist(object.md5).then(r => result = r)
+                if (result) {
+                    console.log("重复");
+                    return resolve()
                 }
-            )
-        }
+                let sql = "INSERT INTO http_request.pomelo_tidied_data (" + Object.keys(object).toString().replaceAll("'", "")
+                    + ") VALUES ('" + Object.values(object).join("','") + "');"
+                // console.log(sql);
+                connection.query(sql,
+                    [],
+                    (error, result) => {
+                        if (error) {
+                            // console.log(object)
+                            throw new Error(error)
+                        }
+                        resolve(result)
+                    }
+                )
+            }
         )
     },
     update(url, uniqueID) {
@@ -400,6 +411,6 @@ function int(string) {
     return parseInt(string.replace(/[g斤个]/g, ""))
 }
 
-//parser.init(20220702).then(console.log)
+// parser.init(20220601).then(console.log)
 
 module.exports = parser
